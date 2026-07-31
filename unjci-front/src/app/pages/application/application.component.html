@@ -1,0 +1,173 @@
+<div class="page">
+  <!-- Bouton Retour -->
+  <button class="btn-back" *ngIf="currentStep > 1" (click)="prevStep()">
+    &larr; Étape précédente
+  </button>
+  <a routerLink="/" class="btn-back" *ngIf="currentStep === 1">
+    &larr; Retour à l'accueil
+  </a>
+
+  <!-- EN-TÊTE DE PROGRESSION (Le Stepper) -->
+  <div class="stepper-container">
+    <div class="stepper">
+      <!-- Etape 1 -->
+      <div class="step" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+        <div class="step-circle"><span *ngIf="currentStep <= 1">1</span><svg *ngIf="currentStep > 1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+        <div class="step-label">Identité</div>
+      </div>
+      <div class="step-line" [class.completed]="currentStep > 1"></div>
+      
+      <!-- Etape 2 -->
+      <div class="step" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+        <div class="step-circle"><span *ngIf="currentStep <= 2">2</span><svg *ngIf="currentStep > 2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+        <div class="step-label">Profession</div>
+      </div>
+      <div class="step-line" [class.completed]="currentStep > 2"></div>
+
+      <!-- Etape 3 -->
+      <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
+        <div class="step-circle"><span *ngIf="currentStep <= 3">3</span><svg *ngIf="currentStep > 3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div>
+        <div class="step-label">Justificatifs</div>
+      </div>
+      <div class="step-line" [class.completed]="currentStep > 3"></div>
+
+     <!-- Etape 4 -->
+      <div class="step" [class.active]="currentStep === 4" [class.completed]="currentStep > 4">
+        <div class="step-circle">
+          <span *ngIf="currentStep <= 4">4</span>
+          <svg *ngIf="currentStep > 4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="step-label">Connexion</div>
+      </div>
+      <div class="step-line" [class.completed]="currentStep > 4"></div>
+<div class="step-line" [class.completed]="currentStep > 4"></div>
+
+       <!-- Etape 5 -->
+      <div class="step" [class.active]="currentStep === 5">
+        <div class="step-circle">5</div>
+        <div class="step-label">Engagement</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TITRE DE L'ÉTAPE COURANTE -->
+  <div class="step-header text-center">
+    <h1 *ngIf="currentStep === 1">Informations du membre</h1>
+    <h1 *ngIf="currentStep === 2">Statut professionnel</h1>
+    <h1 *ngIf="currentStep === 3">Pièces justificatives</h1>
+    <h1 *ngIf="currentStep === 4">Identifiants de connexion</h1>
+    <h1 *ngIf="currentStep === 5">Engagement et données</h1>
+
+    <p class="subtitle text-muted">Veuillez renseigner les informations requises pour continuer.</p>
+  </div>
+
+  <div id="form-alert" class="error form-alert" *ngIf="submitted && form.invalid" role="alert">
+    Certains champs obligatoires sont incomplets ou incorrects.
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="form-shell">
+    
+    <!-- ================= ÉTAPE 1 : IDENTITÉ ================= -->
+    <div class="step-content" *ngIf="currentStep === 1">
+      <section class="panel">
+        <h2>Informations personnelles</h2>
+        <div class="grid">
+          <label><span class="field-label">Nom <b>*</b></span><input formControlName="lastName" placeholder="Votre nom"></label>
+          <label><span class="field-label">Prénom(s) <b>*</b></span><input formControlName="firstName" placeholder="Vos prénoms"></label>
+          <label><span class="field-label">Date de naissance <b>*</b></span><input type="date" formControlName="birthDate"></label>
+          <label><span class="field-label">Lieu de naissance <b>*</b></span><input formControlName="birthPlace"></label>
+          <label><span class="field-label">Adresse postale <b>*</b></span><input formControlName="postalAddress" placeholder="Votre adresse postale"></label>
+          <label><span class="field-label">Téléphone <b>*</b></span><input formControlName="phone" placeholder="+225 ..."></label>
+        </div>
+      </section>
+
+    
+    </div>
+
+    <!-- ================= ÉTAPE 2 : PROFESSION ================= -->
+    <div class="step-content" *ngIf="currentStep === 2">
+     
+      <section class="panel mt-4">
+        <h2>Informations professionnelles</h2>
+        <div class="grid">
+          <label><span class="field-label">Statut professionnel <b>*</b></span><select formControlName="professionalStatus"><option value="">Sélectionner</option><option *ngFor="let item of statuses">{{item}}</option></select></label>
+          <label><span class="field-label">Média / employeur <b>*</b></span><input formControlName="employers" placeholder="Journal, chaîne..."></label>
+          <label><span class="field-label">Fonction <b>*</b></span><select formControlName="functionTitle"><option value="">Sélectionner</option><option *ngFor="let item of functions">{{item}}</option></select></label>
+          <label><span class="field-label">N° de carte de presse <b>*</b></span><input formControlName="pressCardNumber"></label>
+          <label><span class="field-label">Date de validité <b>*</b></span><input type="date" formControlName="pressCardExpiry"></label>
+         <label><span class="field-label">E-mail personnel <b>*</b></span><input type="email" formControlName="personalEmail"></label>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= ÉTAPE 3 : JUSTIFICATIFS ================= -->
+    <div class="step-content" *ngIf="currentStep === 3">
+      <section class="panel">
+        <h2>Pièces justificatives</h2>
+        <div class="upload-grid">
+          <label class="upload"><span class="field-label">Carte de presse en cours <b>*</b></span><input type="file" accept="image/*,.pdf" (change)="fileSelected($event,'pressCardFile')"><strong>{{form.value.pressCardFile || 'Choisir un fichier'}}</strong></label>
+          <label class="upload">CV mis à jour<input type="file" accept=".pdf,.doc,.docx" (change)="fileSelected($event,'cvFile')"><strong>{{form.value.cvFile || 'Choisir un fichier'}}</strong></label>
+          <label class="upload photo-upload">
+            <span class="field-label">Photo d’identité <b>*</b></span>
+            <input type="file" accept="image/jpeg,image/png" (change)="fileSelected($event,'photoFile')">
+            <strong>{{form.value.photoFile || 'Choisir une photo'}}</strong>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= ÉTAPE 4 : Identifiants de connexion ================= -->
+    <div class="step-content" *ngIf="currentStep === 4">
+       <section class="panel credentials-panel mt-4">
+        <h2>Identifiants de connexion</h2>
+        <div class="grid">
+          <label class="wide">
+            <span class="field-label">Login <b>*</b></span>
+            <input formControlName="login" autocomplete="username" placeholder="Ex. kouassi.jean" />
+          </label>
+          <label>
+            <span class="field-label">Mot de passe <b>*</b></span>
+            <div class="password-field">
+              <input [type]="passwordVisible ? 'text' : 'password'" formControlName="password" placeholder="8 caractères min." />
+            </div>
+          </label>
+          <label>
+            <span class="field-label">Confirmer le mot de passe <b>*</b></span>
+            <div class="password-field">
+              <input [type]="confirmPasswordVisible ? 'text' : 'password'" formControlName="confirmPassword" placeholder="Saisissez à nouveau" />
+            </div>
+          </label>
+        </div>
+      </section>
+       </div>
+<div class="step-content" *ngIf="currentStep === 5">
+      <section class="panel mt-4">
+        <h2>Engagement et données</h2>
+        <label class="check"><input type="checkbox" formControlName="declarationAccepted"><span>Je certifie l’exactitude des renseignements fournis et m’engage à respecter les statuts.</span></label>
+        <label class="check"><input type="checkbox" formControlName="privacyAccepted"><span>J’accepte le traitement de mes données pour la gestion de l'association.</span></label>
+        <div class="grid signature mt-3">
+          <label><span class="field-label">Signature (Nom) <b>*</b></span><input formControlName="signatureName"></label>
+          <label><span class="field-label">Date <b>*</b></span><input type="date" formControlName="signatureDate"></label>
+        </div>
+      </section>
+    </div>
+
+    <!-- BOUTONS DE NAVIGATION -->
+    <div class="form-actions mt-6 flex-between">
+      <div>
+        <button type="button" class="btn btn-outline" *ngIf="currentStep > 1" (click)="prevStep()">Précédent</button>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" *ngIf="currentStep < totalSteps" (click)="nextStep()">Continuer</button>
+        <button type="submit" class="btn btn-success submit" *ngIf="currentStep === totalSteps" [disabled]="saving">
+          {{saving ? 'Traitement...' : 'Connectez-vous pour finaliser l\'inscription'}}
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>

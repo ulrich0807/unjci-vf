@@ -1,0 +1,184 @@
+<div class="admin-page">
+  <header class="admin-header">
+    <div>
+      <span>ADMINISTRATION UNJCI</span>
+      <h1>Gestion des adhérents</h1>
+      <p>Pilotez les demandes, validez les paiements et gérez les cartes membres.</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="outline-button" (click)="openScanner()">Scanner une carte</button>
+      <button class="primary-button" (click)="logout()">Déconnexion</button>
+    </div>
+  </header>
+
+  <section class="metrics">
+    <article><small>Total adhérents</small><strong>{{ members.length }}</strong><span>Registre complet</span></article>
+    <article><small>Actifs</small><strong>{{ count('ACTIVE') }}</strong><span class="green">Cartes valides</span></article>
+    <article><small>En attente</small><strong>{{ count('pending') }}</strong><span class="orange">À examiner</span></article>
+    <article><small>Paiements à valider</small><strong>{{ pendingPayments.length }}</strong><span class="orange">Wave</span></article>
+  </section>
+
+  <!-- NOUVELLE SECTION : VALIDATION DES PAIEMENTS -->
+  <section class="members-card" *ngIf="pendingPayments.length > 0">
+    <div class="card-heading">
+      <div>
+        <span class="orange">ACTION REQUISE</span>
+        <h2>Paiements Wave en attente</h2>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Adhérent</th>
+            <th>ID Transaction</th>
+            <th>Téléphone</th>
+            <th>Montant</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let payment of pendingPayments">
+            <td>
+              <strong>{{ payment.member?.last_name | uppercase }} {{ payment.member?.first_name }}</strong>
+            </td>
+            <td><code>{{ payment.transaction_id }}</code></td>
+            <td>{{ payment.payment_phone }}</td>
+            <td>{{ payment.amount | number:'1.0-0' }} FCFA</td>
+            <td>
+              <div class="actions">
+                <button class="validate" (click)="validatePayment(payment.id, 'approved')">Approuver</button>
+                <button class="terminate" (click)="validatePayment(payment.id, 'rejected')">Rejeter</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- REGISTRE DES MEMBRES EXISTANT -->
+  <section class="members-card" style=" margin: 24px 0; ">
+    <div class="card-heading">
+      <div><span>REGISTRE</span><h2>Liste des adhérents</h2></div>
+      <div class="filters">
+        <input [(ngModel)]="search" placeholder="Rechercher un adhérent..." (input)="filterMembers()" />
+        <select [(ngModel)]="statusFilter" (change)="filterMembers()">
+          <option value="">Tous les statuts</option>
+          <option value="pending">En attente</option>
+          <option value="ACTIVE">Actif</option>
+          <option value="SUSPENDUE">Suspendu</option>
+          <option value="RESILIEE">Résilié</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap" *ngIf="filteredMembers.length; else empty">
+      <table>
+        <thead><tr><th>Adhérent</th><th>N° membre</th><th>Demande</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let member of filteredMembers">
+            <td>
+              <div class="member-cell">
+                <div class="avatar">
+                  <img *ngIf="member.photo_file_path" [src]="getPhotoUrl(member.photo_file_path)" alt="" />
+                  <span *ngIf="!member.photo_file_path">{{member.first_name[0]}}{{member.last_name[0]}}</span>
+                </div>
+                <div>
+                  <strong>{{member.last_name | uppercase}} {{member.first_name}}</strong>
+                  <small>{{member.personal_email}}</small>
+                </div>
+              </div>
+            </td>
+            <td><code>{{ member.member_number || 'Non attribué' }}</code></td>
+            <td>{{ member.request_type }}<small>{{ member.created_at | date:'dd/MM/yyyy' }}</small></td>
+            <td><span class="status" [attr.data-status]="member.status">{{ member.status }}</span></td>
+            <td>
+             <div class="actions">
+          <button class="validate" (click)="setStatus(member, 'approved')" [disabled]="member.status === 'approved'">Approuver</button>
+           <button class="terminate" (click)="setStatus(member, 'rejected')" [disabled]="member.status === 'rejected'">Rejeter</button>
+            </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #empty><div class="empty"><h3>Aucun adhérent trouvé</h3><p>Modifiez les filtres ou attendez de nouvelles demandes.</p></div></ng-template>
+  </section>
+
+
+
+  <!-- NOUVELLE SECTION : HISTORIQUE COMPLET DES PAIEMENTS -->
+  <section class="members-card" style=" margin: 24px 0; ">
+    <div class="card-heading">
+      <div>
+        <span>FINANCES</span>
+        <h2>Historique des paiements</h2>
+        <!-- Affichage dynamique du total -->
+        <p style="margin-top: 0.5rem; color: #0f766e; font-size: 1.1rem;">
+          Total affiché : <strong>{{ totalPaymentsAmount | number:'1.0-0' }} FCFA</strong>
+        </p>
+      </div>
+      <div class="filters">
+        <!-- Filtre par type -->
+        <select [(ngModel)]="paymentTypeFilter" (change)="filterPayments()">
+          <option value="">Tous les types</option>
+          <option value="adhésion">Adhésion (10.000 FCFA)</option>
+          <option value="renouvellement">Renouvellement (5.000 FCFA)</option>
+        </select>
+
+        <!-- Filtre par statut -->
+        <select [(ngModel)]="paymentStatusFilter" (change)="filterPayments()">
+          <option value="">Tous les statuts</option>
+          <option value="pending">En attente</option>
+          <option value="approved">Approuvé</option>
+          <option value="rejected">Refusé</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap" *ngIf="filteredPayments.length; else emptyPayments">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Adhérent</th>
+            <th>Type</th>
+            <th>Téléphone (Wave)</th>
+            <th>ID Transaction</th>
+            <th>Montant</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of filteredPayments">
+            <td>{{ p.created_at | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <strong>{{ p.member?.last_name | uppercase }} {{ p.member?.first_name }}</strong>
+            </td>
+            <td>{{ p.member?.request_type }}</td>
+            <td>{{ p.payment_phone }}</td>
+            <td><code>{{ p.transaction_id }}</code></td>
+            <td><strong>{{ p.amount | number:'1.0-0' }} FCFA</strong></td>
+            <td>
+              <span class="status" 
+                    [class.active]="p.status === 'approved'"
+                    [class.pending]="p.status === 'pending'">
+                {{ p.status === 'approved' ? 'Approuvé' : (p.status === 'pending' ? 'En attente' : 'Refusé') }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <ng-template #emptyPayments>
+      <div class="empty">
+        <h3>Aucun paiement trouvé</h3>
+        <p>Modifiez vos filtres ou attendez de nouvelles transactions.</p>
+      </div>
+    </ng-template>
+  </section>
+
+  <!-- <section *ngIf="scannerVisible" id="scanner-carte" class="scanner-section"> ... </section> -->
+</div>

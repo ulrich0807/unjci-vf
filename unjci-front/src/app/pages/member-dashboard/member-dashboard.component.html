@@ -1,0 +1,163 @@
+<div class="dashboard-page">
+  <header class="dashboard-hero">
+    <div>
+      <span class="kicker">ESPACE MEMBRE</span>
+      <h1>Bonjour, {{ member?.firstName || 'cher membre' }}.</h1>
+      <p>Gérez vos informations et retrouvez tous vos services UNJCI.</p>
+    </div>
+    <button class="logout" type="button" (click)="logout()">Déconnexion</button>
+  </header>
+
+
+
+  <div *ngIf="member; else noMember" class="dashboard-grid">
+    <section class="member-summary">
+      <div class="profile-head">
+        <div class="avatar">
+          <img *ngIf="member.photoDataUrl" [src]="member.photoDataUrl" alt="" />
+          <span *ngIf="!member.photoDataUrl">{{ member.firstName[0] }}{{ member.lastName[0] }}</span>
+        </div>
+        <div>
+          <span class="status" [class.active]="member.status === 'ACTIVE'">{{ member.status }}</span>
+          <h2>{{ member.firstName }} {{ member.lastName }}</h2>
+          <p>{{ member.memberNumber }}</p>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="profil" class="content-card profile-card">
+      <div class="section-head">
+        <div>
+          <span class="section-label">MES INFORMATIONS</span>
+          <h2>Profil personnel</h2>
+        </div>
+        <button *ngIf="!editing" type="button" class="outline-button" (click)="editing = true">
+          Modifier
+        </button>
+      </div>
+
+      <div *ngIf="saved" class="success-message">Votre profil a été mis à jour.</div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <label>
+          Téléphone
+          <input formControlName="phone" [readOnly]="!editing" />
+        </label>
+        <label>
+          E-mail
+          <input type="email" formControlName="personalEmail" [readOnly]="!editing" />
+        </label>
+        <label class="wide">
+          Adresse
+          <input formControlName="postalAddress" [readOnly]="!editing" />
+        </label>
+        <label>
+          Média / employeur
+          <input formControlName="employers" [readOnly]="!editing" />
+        </label>
+        <label>
+          Fonction
+          <input formControlName="functionTitle" [readOnly]="!editing" />
+        </label>
+        <div *ngIf="editing" class="form-actions wide">
+          <button type="button" class="cancel-button" (click)="editing = false">Annuler</button>
+          <button type="submit" class="primary-button">Enregistrer</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="paiement" class="content-card payment-proof-card">
+      <div class="section-head">
+        <div>
+          <span class="section-label">COTISATION</span>
+          <h2>Justificatif de paiement</h2>
+        </div>
+        <button
+          *ngIf="!addingPaymentProof && (!hasPendingPayment)"
+          type="button"
+          class="outline-button"
+          (click)="addingPaymentProof = true"
+        >
+          Ajouter le justificatif de paiement
+        </button>
+      </div>
+
+      <div *ngIf="paymentSaved" class="success-message">
+        Votre justificatif de paiement a été enregistré et est en cours de validation.
+      </div>
+
+      <!-- État : Un paiement est en attente de validation -->
+      <div *ngIf="!addingPaymentProof && hasPendingPayment" class="proof-summary">
+        <div class="status-badge pending">Validation en cours par un administrateur</div>
+        <p>Vous avez soumis un justificatif de <strong>{{ expectedAmount }} FCFA</strong>.</p>
+      </div>
+
+      <!-- État : Aucun paiement (correspond à ta capture d'écran) -->
+      <div *ngIf="!addingPaymentProof && !hasPendingPayment && history.length === 0" class="proof-missing" style="background-color: #fff9f0; border: 1px solid #fbd38d; padding: 1.5rem; border-radius: 8px;">
+        <strong style="color: #9c4221; font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Aucun justificatif ajouté</strong>
+        <p style="margin-bottom: 1rem;">Votre cotisation s'élève à <strong>{{ expectedAmount }} FCFA</strong>. Réglez ce montant via notre lien sécurisé, puis ajoutez les références ici.</p>
+        
+        <a href="https://pay.wave.com/m/M_ci_1oLobZU1c7N5/c/ci/" target="_blank" class="primary-button" style="display: inline-block; background-color: #1cbed3; margin-bottom: 1rem;">
+          Payer avec Wave
+        </a>
+        
+        <p style="font-size: 0.9rem; color: #666;">Ajoutez le numéro utilisé avec Wave et l'ID reçu après votre transaction via le bouton ci-dessus.</p>
+      </div>
+
+      <!-- Formulaire d'ajout de justificatif -->
+      <form *ngIf="addingPaymentProof" [formGroup]="paymentProofForm" (ngSubmit)="savePaymentProof()">
+        <label>
+          Numéro utilisé pour le paiement
+          <input formControlName="paymentPhone" placeholder="+225 00 00 00 00 00" />
+        </label>
+        <label>
+          ID de la transaction
+          <input formControlName="transactionId" placeholder="Ex. CI240731..." />
+        </label>
+        <div class="form-actions wide">
+          <button type="button" class="cancel-button" (click)="addingPaymentProof = false">Annuler</button>
+          <button type="submit" class="primary-button" [disabled]="savingPayment">
+            {{ savingPayment ? 'Enregistrement...' : 'Enregistrer le justificatif' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section id="historique" class="content-card history-card" *ngIf="history.length > 0">
+      <div class="section-head">
+        <div>
+          <span class="section-label">COTISATIONS</span>
+          <h2>Historique de l’abonnement</h2>
+        </div>
+      </div>
+      <div class="history-table">
+        <div class="table-head"><span>Date</span><span>Téléphone</span><span>Montant</span><span>Statut</span></div>
+        <div *ngFor="let item of history" class="table-row">
+          <span>{{ item.created_at | date:'dd/MM/yyyy' }}</span>
+          <strong>{{ item.payment_phone }}</strong>
+          <span>{{ item.amount | number:'1.0-0' }} FCFA</span>
+          <span class="status" 
+                [class.active]="item.status === 'approved'"
+                [class.pending]="item.status === 'pending'">
+            {{ item.status === 'approved' ? 'Validé' : (item.status === 'pending' ? 'En attente' : 'Rejeté') }}
+          </span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<!-- État de chargement : s'affiche pendant la requête -->
+  <div *ngIf="isLoading" class="loading-state" style="text-align: center; padding: 4rem;">
+    <p>Chargement de votre espace en cours...</p>
+  </div>
+
+  <!-- Ne s'affiche que si le chargement est terminé ET qu'il n'y a pas de membre -->
+  <ng-template #noMember>
+    <section *ngIf="!isLoading" class="empty-state">
+      <h2>Aucun dossier membre associé</h2>
+      <p>Effectuez d’abord une demande d’adhésion pour alimenter votre espace membre.</p>
+      <a routerLink="/application" class="primary-button">Faire une demande</a>
+    </section>
+  </ng-template>
+</div>

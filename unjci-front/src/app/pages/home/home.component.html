@@ -1,0 +1,158 @@
+<div class="landing-wrapper page">
+  
+  <!-- 🌟 HERO SLIDER PREMIUM -->
+  <section class="modern-hero">
+    <div *ngFor="let slide of slides; let i = index" 
+         class="slide" 
+         [ngClass]="{'active': currentSlide === i}">
+      
+      <div class="slide-bg" [style.backgroundImage]="'url(' + slide.image + ')'"></div>
+      <div class="slide-overlay"></div>
+      
+      <div class="hero-container">
+        <!-- Effet Glassmorphism sur le contenu du hero -->
+        <div class="glass-panel">
+          <span class="badge-modern slide-up-1">{{ slide.badge }}</span>
+          <h1 class="slide-up-2">{{ slide.titre }}</h1>
+          <p class="slide-up-3">{{ slide.description }}</p>
+          
+          <div class="hero-actions slide-up-4">
+            <a routerLink="/application" class="btn-glow">S'inscrire / Adhérer</a>
+            <a routerLink="/verification" class="btn-outline-light">Vérifier une carte</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contrôles du slider (Flèches et Points) -->
+    <button class="nav-arrow left-arrow" (click)="prevSlide()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+    </button>
+    <button class="nav-arrow right-arrow" (click)="nextSlide()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+    </button>
+
+    <div class="slider-dots">
+      <button *ngFor="let slide of slides; let i = index" 
+              class="dot" 
+              [ngClass]="{'active': currentSlide === i}"
+              (click)="setSlide(i)">
+      </button>
+    </div>
+  </section>
+
+  <div class="landing-container">
+
+    <!-- ✅ SECTION 1 : ADHÉRER À L'UNJCI (Design Asymétrique) -->
+    <!-- ✅ SECTION 1 : ADHÉRER À L'UNJCI (Design Asymétrique) -->
+<section class="adhesion-split-section fade-in">
+  <div class="split-content">
+    
+    <div class="text-column">
+      <div class="section-tag">Adhérer à l'UNJCI</div>
+      <h2 class="modern-title">Présentation de<br><span>l'adhésion numérique</span></h2>
+      
+      <p class="lead-text">
+        Dans le cadre de la modernisation de ses services, l'Union Nationale des Journalistes de Côte d'Ivoire (UNJCI) met à votre disposition une plateforme numérique innovante, entièrement dédiée à la gestion de ses membres.
+      </p>
+      
+      <p class="standard-text">
+        Soumettez en ligne, de manière fluide et intuitive, vos demandes d'adhésion ou de renouvellement. Renseignez vos informations professionnelles, téléversez vos pièces justificatives en toute sécurité, et obtenez une carte numérique de membre. Celle-ci intègre un QR Code infalsifiable permettant de prouver et de faire vérifier instantanément votre statut professionnel.
+      </p>
+      
+      <div class="action-group mt-6">
+        <a routerLink="/application" class="btn-solid-primary">Déposer ma demande d'adhésion</a>
+      </div>
+    </div>
+    
+    <div class="image-column">
+      <div class="image-wrapper">
+        <img src="./assets/images/jj.jpeg" alt="Professionnels des médias utilisant la plateforme">
+        <div class="floating-stat glass-panel-small">
+          <strong>100%</strong>
+          <span>Dématérialisé et Sécurisé</span>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+</section>
+
+    <!-- ✅ SECTION 2 : RAISONS DE REJOINDRE L'UNJCI (Style Accordéon) -->
+    <section class="benefits-accordion-section fade-in">
+      <div class="section-header text-center">
+        <h2 class="accordion-main-title">Raisons de rejoindre l'UNJCI</h2>
+      </div>
+
+      <div class="accordion-wrapper">
+        <!-- Utilisation de la balise native <details> pour l'accordéon -->
+        <details class="custom-accordion" *ngFor="let benefice of benefices">
+          <summary class="accordion-summary">
+            <span class="accordion-title">{{ benefice.titre | uppercase }}</span>
+          </summary>
+          <div class="accordion-body">
+            <p>{{ benefice.description }}</p>
+          </div>
+        </details>
+        
+        <!-- On peut aussi afficher les opportunités dans le même style à la suite -->
+        <details class="custom-accordion" *ngFor="let opp of opportunites">
+          <summary class="accordion-summary">
+            <span class="accordion-title">{{ opp.titre | uppercase }}</span>
+          </summary>
+          <div class="accordion-body">
+            <p>{{ opp.description }}</p>
+          </div>
+        </details>
+      </div>
+
+     
+    </section>
+
+    <!-- BANNIÈRE D'APPEL À L'ACTION (CTA) -->
+    <section class="modern-cta fade-in">
+      <div class="cta-bg-shapes"></div>
+      <div class="cta-content">
+        <h2>Prêt à intégrer l'Union ?</h2>
+        <p>Rejoignez vos confrères et participez au rayonnement de la profession.</p>
+        <a routerLink="/application" class="btn-glow-large">Bouton d'inscription / adhésion</a>
+      </div>
+    </section>
+
+    <!-- ✅ SECTION 4 : NOTRE MISSION -->
+    <section class="mission-section fade-in">
+      <div class="mission-grid">
+        <div class="mission-text">
+          <div class="section-tag">Qui sommes-nous ?</div>
+          <h2 class="modern-title">Protéger, Rassembler et <span>Élever la profession</span></h2>
+          <p class="standard-text">
+            Depuis sa création, l'Union Nationale des Journalistes de Côte d'Ivoire s'est imposée comme le socle de la solidarité confraternelle. 
+          </p>
+          <p class="standard-text mt-4">
+            Nous œuvrons au quotidien pour l'amélioration des conditions de vie et de travail des professionnels des médias, la défense de la liberté de la presse, et la promotion de l'excellence à travers des initiatives majeures .
+          </p>
+        </div>
+        <div class="mission-visual">
+          <div class="experience-badge">
+            <span class="exp-number">35</span>
+            <span class="exp-text">Ans<br>d'engagement</span>
+          </div>
+          <img src="./assets/images/logo.jpg" alt="Emblème UNJCI" class="mission-img-placeholder">
+        </div>
+      </div>
+    </section>
+
+    <!-- ✅ SECTION 5 : CHIFFRES CLÉS -->
+    <section class="stats-section fade-in">
+      <div class="stats-container">
+        <div class="stat-item" *ngFor="let stat of chiffresCles">
+          <span class="stat-number">{{ stat.valeur }}</span>
+          <span class="stat-label">{{ stat.label }}</span>
+        </div>
+      </div>
+    </section>
+
+  
+
+  </div>
+</div>

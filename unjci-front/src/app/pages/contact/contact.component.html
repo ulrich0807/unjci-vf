@@ -1,0 +1,108 @@
+<div class="page contact-page">
+  <section class="hero">
+    <span class="eyebrow">UNJCI À VOTRE ÉCOUTE</span>
+    <h1>Nous contacter</h1>
+    <p>
+      Une question sur l’adhésion, votre carte de membre ou les activités de l’Union ?
+      Envoyez-nous votre message.
+    </p>
+  </section>
+
+  <div class="success" *ngIf="sent" role="status">
+    <strong>Votre message a bien été enregistré.</strong>
+    <span>L’équipe de l’UNJCI vous répondra dans les meilleurs délais.</span>
+  </div>
+
+  <section class="contact-layout">
+    <aside class="contact-info">
+      <span class="section-label">Coordonnées</span>
+      <h2>Parlons de votre demande</h2>
+      <p>
+        Précisez le motif de votre message afin qu’il soit transmis au service concerné.
+      </p>
+
+      <div class="info-item">
+        <span class="info-icon" aria-hidden="true">✉</span>
+        <div>
+          <small>Courriel</small>
+          <strong>UNJCI</strong>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-icon" aria-hidden="true">⌂</span>
+        <div>
+          <small>Adresse</small>
+          <strong>Maison de la Presse, Abidjan</strong>
+        </div>
+      </div>
+    </aside>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="contact-form" novalidate>
+      <div class="form-heading">
+        <span class="section-label">Formulaire de contact</span>
+        <h2>Écrivez-nous</h2>
+        <p>Les champs marqués d’un astérisque sont obligatoires.</p>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          <p>Nom et prénoms <span style="color: red;">*</span></p>
+          <input type="text" formControlName="fullName" placeholder="Votre nom complet" />
+          <small class="field-error" *ngIf="submitted && form.controls.fullName.invalid">
+            Veuillez renseigner votre nom.
+          </small>
+        </label>
+
+        <label>
+          <p>Adresse e-mail <span style="color: red;">*</span></p>
+          <input type="email" formControlName="email" placeholder="exemple@email.com" />
+          <small class="field-error" *ngIf="submitted && form.controls.email.invalid">
+            Veuillez saisir une adresse e-mail valide.
+          </small>
+        </label>
+
+        <label>
+          <p>Téléphone</p>
+          <input type="tel" formControlName="phone" placeholder="+225 00 00 00 00 00" />
+        </label>
+
+        <label>
+          <p>Objet de votre demande <span style="color: red;">*</span></p>
+          <select formControlName="subject">
+            <option value="">Sélectionner un motif</option>
+            <option value="adhesion">Adhésion ou renouvellement</option>
+            <option value="carte">Carte de membre</option>
+            <option value="verification">Vérification d’une carte</option>
+            <option value="partenariat">Partenariat ou événement</option>
+            <option value="autre">Autre demande</option>
+          </select>
+          <small class="field-error" *ngIf="submitted && form.controls.subject.invalid">
+            Veuillez choisir un motif.
+          </small>
+        </label>
+
+        <label class="wide">
+          <p>Votre message <span style="color: red;">*</span></p>
+          <textarea
+            formControlName="message"
+            rows="7"
+            placeholder="Décrivez votre demande en quelques lignes..."
+          ></textarea>
+          <small class="field-error" *ngIf="submitted && form.controls.message.invalid">
+            Votre message doit contenir au moins 10 caractères.
+          </small>
+        </label>
+      </div>
+
+      <label class="consent">
+        <input type="checkbox" formControlName="consent" />
+        <span>J’accepte que mes informations soient utilisées pour répondre à ma demande.</span>
+      </label>
+      <small class="field-error consent-error" *ngIf="submitted && form.controls.consent.invalid">
+        Votre accord est nécessaire pour envoyer le message.
+      </small>
+
+      <button type="submit" class="btn btn-primary submit-button">Envoyer mon message</button>
+    </form>
+  </section>
+</div>

@@ -1,0 +1,111 @@
+<div class="login-page">
+  <section class="login-visual" aria-label="Présentation de l’espace membre">
+    <div class="visual-content">
+      <span class="eyebrow">ESPACE MEMBRE</span>
+      <h1>Bienvenue dans votre espace UNJCI.</h1>
+      <p>
+        Consultez votre dossier, suivez votre demande et accédez à votre carte
+        professionnelle en toute sécurité.
+      </p>
+    </div>
+
+    <div class="security-note">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3 5 6v5c0 4.6 2.9 8.8 7 10 4.1-1.2 7-5.4 7-10V6l-7-3Z" />
+        <path d="m9.5 12 1.7 1.7 3.6-4" />
+      </svg>
+      <span>Connexion sécurisée à votre compte membre</span>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <div class="mobile-logo">
+        <img src="/assets/images/logo.jpg" alt="Logo UNJCI" />
+      </div>
+
+      <header>
+        <span class="section-label">AUTHENTIFICATION</span>
+        <h2>Connexion</h2>
+        <p>Renseignez vos accès pour ouvrir votre espace personnel.</p>
+      </header>
+
+      <div *ngIf="registrationComplete" class="registration-success" role="status">
+        <strong>Votre demande a bien été enregistrée.</strong>
+        <span>Connectez-vous avec le login et le mot de passe que vous venez de créer.</span>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        
+        <label>
+          <span>Login <b>*</b></span>
+          <div class="input-shell" [class.invalid]="submitted && form.controls.login.invalid">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+            </svg>
+            <input
+              type="text"
+              formControlName="login"
+              autocomplete="username"
+              placeholder="Votre identifiant ou e-mail"
+            />
+          </div>
+          <small *ngIf="submitted && form.controls.login.hasError('required')">
+            Veuillez saisir votre identifiant.
+          </small>
+        </label>
+
+        <label>
+          <span>Mot de passe <b>*</b></span>
+          <div class="input-shell" [class.invalid]="submitted && form.controls.password.invalid">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="10" width="16" height="11" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            <input
+              [type]="passwordVisible ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="current-password"
+              placeholder="Votre mot de passe"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="passwordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+            >
+              {{ passwordVisible ? 'Masquer' : 'Afficher' }}
+            </button>
+          </div>
+          <small *ngIf="submitted && form.controls.password.invalid">
+            Le mot de passe doit contenir au moins 6 caractères.
+          </small>
+        </label>
+
+        <div class="form-options">
+          <label class="remember">
+            <input type="checkbox" formControlName="rememberMe" />
+            <span>Se souvenir de moi</span>
+          </label>
+          <a routerLink="/nous-contacter" (click)="$event.preventDefault()">Mot de passe oublié ?</a>
+        </div>
+
+        <div *ngIf="authenticationError" class="authentication-error" role="alert">
+          Login ou mot de passe incorrect.
+        </div>
+
+        <button class="submit-button" type="submit">
+          Se connecter
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+      </form>
+
+      <p class="support">
+        Vous n’avez pas encore de compte ?
+        <a routerLink="/application">Faire une demande d’adhésion</a>
+      </p>
+    </div>
+  </section>
+</div>

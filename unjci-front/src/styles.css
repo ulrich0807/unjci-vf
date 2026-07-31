@@ -1,0 +1,295 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: "Manrope", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: #f4f7f5;
+  font-synthesis: none;
+  
+  /* Palette de couleurs */
+  --green-950: #062c22;
+  --green-800: #075a43;
+  --green-600: #09865f;
+  --green-100: #dcf4e9;
+  --orange: #ef8f25;
+  --orange-hover: #e07d14;
+  --ink: #17241f;
+  --muted: #65736d;
+  --line: #dce5e0;
+  
+  /* Variables d'effets (Glassmorphism & Ombres) */
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-border: rgba(255, 255, 255, 0.4);
+  --shadow-sm: 0 4px 12px rgba(15, 55, 42, 0.04);
+  --shadow-lg: 0 20px 40px -8px rgba(15, 55, 42, 0.12);
+  --shadow-glow: 0 12px 30px rgba(9, 134, 95, 0.25);
+}
+
+/* =========================================
+   RESETS & TYPOGRAPHIE
+   ========================================= */
+* { 
+  box-sizing: border-box; 
+}
+
+html { 
+  scroll-behavior: smooth; 
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  /* Lissage du texte pour un rendu plus net sur tous les écrans */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  
+  /* Arrière-plan global enrichi et plus doux */
+  background:
+    radial-gradient(circle at 0% 0%, rgba(9, 134, 95, 0.04), transparent 40rem),
+    radial-gradient(circle at 100% 40%, rgba(239, 143, 37, 0.04), transparent 30rem),
+    #f4f7f5;
+}
+
+button, input, select, textarea { 
+  font: inherit; 
+}
+
+button, a { 
+  -webkit-tap-highlight-color: transparent; 
+}
+
+/* =========================================
+   LAYOUTS GLOBAUX
+   ========================================= */
+.page { 
+  width: min(1160px, calc(100% - 40px)); 
+  margin: 40px auto 64px; 
+}
+
+/* =========================================
+   COMPOSANT HERO (En-têtes de pages)
+   ========================================= */
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(38px, 6vw, 68px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 32px;
+  color: #fff;
+  background: linear-gradient(135deg, #052d23 0%, #086349 50%, #0b8a63 100%);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Effets de lueur en arrière-plan avec légère animation */
+.hero::before, .hero::after { 
+  content: ""; 
+  position: absolute; 
+  z-index: -1; 
+  border-radius: 50%; 
+}
+
+.hero::before { 
+  width: 400px; 
+  height: 400px; 
+  right: -100px; 
+  top: -200px; 
+  border: 60px solid rgba(255, 255, 255, 0.03); 
+}
+
+.hero::after { 
+  width: 250px; 
+  height: 250px; 
+  right: 15%; 
+  bottom: -150px; 
+  background: rgba(239, 143, 37, 0.35); 
+  filter: blur(40px); /* Augmentation du blur pour une lumière plus diffuse */
+}
+
+.hero h1 { 
+  max-width: 760px; 
+  margin: 8px 0 16px; 
+  font-size: clamp(36px, 5vw, 64px); 
+  font-weight: 800;
+  line-height: 1.1; 
+  letter-spacing: -0.03em; 
+}
+
+.hero p { 
+  max-width: 720px; 
+  margin: 0; 
+  color: rgba(255, 255, 255, 0.85); 
+  font-size: 1.125rem; 
+  line-height: 1.6; 
+}
+
+/* =========================================
+   UTILITAIRES DE TEXTE
+   ========================================= */
+.eyebrow { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 12px; 
+  color: #ffd09a; 
+  font-size: 0.75rem; 
+  font-weight: 800; 
+  letter-spacing: 0.2em; 
+  text-transform: uppercase;
+}
+
+.eyebrow::before { 
+  content: ""; 
+  width: 32px; 
+  height: 2px; 
+  background: var(--orange); 
+  border-radius: 2px;
+}
+
+.muted { 
+  color: var(--muted); 
+}
+
+/* =========================================
+   PANNEAUX (Glassmorphism & Cartes)
+   ========================================= */
+.panel { 
+  padding: clamp(24px, 4vw, 40px); 
+  border: 1px solid var(--surface-border); 
+  border-radius: 24px; 
+  background: var(--surface); 
+  box-shadow: var(--shadow-sm); 
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   BOUTONS GLOBAUX
+   ========================================= */
+.btn { 
+  min-height: 50px; 
+  padding: 12px 24px; 
+  border: 0; 
+  border-radius: 14px; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 8px; 
+  color: inherit; 
+  font-size: 0.95rem; 
+  font-weight: 700; 
+  letter-spacing: 0.02em;
+  text-decoration: none; 
+  cursor: pointer; 
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+}
+
+.btn:hover { 
+  transform: translateY(-3px); 
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary { 
+  color: #fff; 
+  background: linear-gradient(135deg, var(--green-600), var(--green-800)); 
+  box-shadow: var(--shadow-glow); 
+}
+
+.btn-primary:hover { 
+  box-shadow: 0 16px 32px rgba(9, 134, 95, 0.35); 
+  background: linear-gradient(135deg, var(--green-600), var(--green-950)); 
+}
+
+.btn-secondary { 
+  color: #fff; 
+  background: var(--orange); 
+  box-shadow: 0 8px 24px rgba(239, 143, 37, 0.25);
+}
+
+.btn-secondary:hover {
+  background: var(--orange-hover);
+  box-shadow: 0 12px 28px rgba(239, 143, 37, 0.35);
+}
+
+.btn-outline { 
+  color: var(--green-800); 
+  background: #fff; 
+  border: 1.5px solid var(--line); 
+}
+
+.btn-outline:hover {
+  border-color: var(--green-600);
+  color: var(--green-600);
+  box-shadow: var(--shadow-sm);
+}
+
+/* =========================================
+   BADGES DE STATUT
+   ========================================= */
+.badge { 
+  display: inline-flex; 
+  align-items: center;
+  width: fit-content; 
+  padding: 6px 14px; 
+  border-radius: 99px; 
+  font-size: 0.7rem; 
+  font-weight: 800; 
+  letter-spacing: 0.08em; 
+  text-transform: uppercase;
+}
+
+.badge-active { 
+  color: #059669; 
+  background: #d1fae5; 
+  border: 1px solid #a7f3d0;
+}
+
+.badge-pending { 
+  color: #d97706; 
+  background: #fef3c7; 
+  border: 1px solid #fde68a;
+}
+
+.badge-invalid { 
+  color: #dc2626; 
+  background: #fee2e2; 
+  border: 1px solid #fecaca;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+   ========================================= */
+@media (max-width: 768px) {
+  .page { 
+    width: min(100% - 32px, 1160px); 
+    padding-top: 24px; 
+  }
+  .hero { 
+    padding: 40px 24px; 
+    border-radius: 24px; 
+  }
+  .hero h1 { 
+    font-size: 2.25rem; 
+  }
+  .panel {
+    padding: 24px;
+  }
+}
+
+/* Accessibilité : Réduction des animations si demandé par l'utilisateur */
+@media (prefers-reduced-motion: reduce) { 
+  * { 
+    scroll-behavior: auto !important; 
+    transition: none !important; 
+    animation: none !important;
+  } 
+}
