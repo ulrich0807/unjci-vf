@@ -15,9 +15,9 @@ export class LoginComponent {
   passwordVisible = false;
   submitted = false;
   authenticationError = false;
+  authenticationErrorMessage = 'Adresse e-mail, numéro UNJCI ou mot de passe incorrect.';
   readonly registrationComplete: boolean;
 
-  // Le champ 'role' a été retiré de la validation
   readonly form = new FormGroup({
     login: new FormControl('', {
       nonNullable: true,
@@ -33,9 +33,13 @@ export class LoginComponent {
   constructor(
     private readonly auth: AuthService,
     private readonly router: Router,
-    route: ActivatedRoute,
+    private readonly route: ActivatedRoute,
   ) {
-    this.registrationComplete = route.snapshot.queryParamMap.get('inscription') === 'reussie';
+    this.registrationComplete = this.route.snapshot.queryParamMap.get('inscription') === 'reussie';
+    const registrationEmail = this.route.snapshot.queryParamMap.get('email')?.trim() || '';
+    if (registrationEmail) {
+      this.form.controls.login.setValue(registrationEmail);
+    }
   }
 
   togglePasswordVisibility(): void {
@@ -44,36 +48,52 @@ export class LoginComponent {
 
   submit(): void {
     this.submitted = true;
-    this.authenticationError = false; // On réinitialise l'erreur à chaque nouvelle tentative
+    this.authenticationError = false;
+    this.authenticationErrorMessage = 'Adresse e-mail, numéro UNJCI ou mot de passe incorrect.';
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.authenticationError = true;
+      this.authenticationErrorMessage = 'Veuillez remplir tous les champs obligatoires (en rouge).';
       return;
     }
 
-    // On envoie les identifiants au service d'authentification
     this.auth.login(this.form.getRawValue()).subscribe({
       next: (response: any) => {
         const userRole = response.user.role; 
 
-        if (userRole === 'admin') {
+        // Si l'utilisateur a été redirigé ici depuis un scan de QR Code
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        if (returnUrl) {
+            this.router.navigateByUrl(returnUrl);
+            return;
+        }
+
+        // Redirections standards selon le rôle
+       if (userRole === 'admin') {
           this.router.navigate(['/administration']);
+        } else if (userRole === 'scanner') {
+          this.router.navigate(['/scanner']);
         } else {
           this.router.navigate(['/espace-membre']);
         }
       },
       error: (error) => {
-        // On affiche le message d'erreur rouge
+        if (error.status === 403 && error.error?.needs_verification) {
+          this.router.navigate(['/verifier-email'], {
+            state: {
+              email: error.error.email,
+              sendOtp: true,
+            }
+          });
+          return;
+        } else if (error.status === 429) {
+          this.authenticationErrorMessage = 'Trop de tentatives de connexion. Réessayez dans une minute.';
+        } else if (error.error?.message) {
+          this.authenticationErrorMessage = error.error.message;
+        }
+        // Affichage de l'erreur en cas de mauvais identifiants
         this.authenticationError = true;
-        
-        // UX : On vide uniquement le champ mot de passe pour forcer l'utilisateur à le retaper
-        this.form.controls.password.reset();
-        
-        // On repasse submitted à false pour ne pas afficher l'erreur "Mot de passe requis" 
-        // tout de suite après l'avoir vidé
-        this.submitted = false; 
-        
-        console.error('Erreur de connexion:', error);
       }
     });
   }

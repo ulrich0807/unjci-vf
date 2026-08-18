@@ -1,0 +1,26 @@
+<div class="scanner-wrapper">
+  <div class="scanner-card">
+    <h2>Scanner de contrôle</h2>
+    <p class="subtitle">Placez le QR Code de la carte au centre du cadre.</p>
+    
+    <!-- Zone de la caméra -->
+    <div class="camera-container">
+      <zxing-scanner
+        [enable]="true"
+        (camerasFound)="onCamerasFound($event)"
+        (permissionResponse)="onHasPermission($event)"
+        (scanSuccess)="handleQrCodeResult($event)">
+      </zxing-scanner>
+    </div>
+
+    <!-- Messages d'erreur -->
+    <div *ngIf="hasPermission === false" class="error-msg">
+      ⚠️ Vous devez autoriser l'accès à la caméra pour scanner les cartes.
+    </div>
+    <div *ngIf="hasDevices === false" class="error-msg">
+      ⚠️ Aucune caméra n'a été détectée sur cet appareil.
+    </div>
+
+    <button class="btn-logout" (click)="logout()">Déconnexion</button>
+  </div>
+</div>

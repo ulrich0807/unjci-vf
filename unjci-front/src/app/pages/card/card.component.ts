@@ -1,21 +1,45 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject,ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import QRCode from 'qrcode';
-import { MemberService } from '../../core/member.service';
-import { MemberApplication } from '../../core/member.model';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { AuthService } from '../../core/auth.service';
+import { QRCodeComponent } from 'angularx-qrcode'; 
+import { environment } from '../../../environments/environment';
 
-@Component({selector:'app-card-page',standalone:true,imports:[CommonModule,RouterLink],templateUrl:'./card.component.html',styleUrl:'./card.component.css'})
-export class CardComponent implements OnInit {
-  member?: MemberApplication;
-  qrDataUrl = '';
-  constructor(private members: MemberService) {}
-  async ngOnInit() {
-    this.member = this.members.getLatest();
-    if (this.member) {
-      const url = `${location.origin}/verification/${this.member.qrToken}`;
-      this.qrDataUrl = await QRCode.toDataURL(url, { width: 320, margin: 1, errorCorrectionLevel: 'H' });
-    }
+@Component({
+  selector: 'app-card',
+  standalone: true,
+  imports: [CommonModule, QRCodeComponent], 
+  templateUrl: './card.component.html',
+  styleUrl: './card.component.css'
+})
+export class CardComponent implements OnInit { 
+  private auth = inject(AuthService);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+
+  member: any = null;
+  qrCodeUrl: string = '';
+  readonly storageUrl = environment.storageUrl;
+
+  ngOnInit(): void {
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+
+    this.http.get(`${environment.apiUrl}/member/profile`, { headers }).subscribe({
+      next: (data: any) => {
+        this.member = data;
+        this.cdr.detectChanges();
+        // Si le membre a un token, on crée le lien de vérification
+        if (this.member.qr_token) {
+          this.qrCodeUrl = `${environment.frontendUrl}/verification/${this.member.qr_token}`;
+        } else {
+          // Sinon, on met un texte par défaut pour forcer le QR Code à s'afficher
+          this.qrCodeUrl = 'CARTE_EN_ATTENTE_DE_VALIDATION'; 
+        }
+      },
+      error: (err) => {
+        console.error('Erreur lors de la récupération du profil du membre:', err);
+      }
+    });
   }
-  printCard(){ window.print(); }
-}
+} // <-- L'accolade fermante manquante a été ajoutée ici

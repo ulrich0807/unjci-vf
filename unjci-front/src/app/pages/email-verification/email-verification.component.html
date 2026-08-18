@@ -1,0 +1,36 @@
+<main class="verification-page">
+  <section class="verification-card">
+    <div class="mail-icon" aria-hidden="true">✉</div>
+    <span class="section-label">VÉRIFICATION DE L’E-MAIL</span>
+
+    <ng-container *ngIf="!verified; else verifiedState">
+      <h1>Vous y êtes presque : Confirmez dès maintenant votre inscription</h1>
+      <p class="intro"> Nous vous avons envoyé un e-mail contenant un code d'activation. Ce code à 6 chiffres nous permet de vérifier votre adresse et de sécuriser votre adhésion.</p>
+
+      <form [formGroup]="form" (ngSubmit)="verify()" novalidate>
+        <label>
+          Adresse e-mail
+          <input type="email" formControlName="email" autocomplete="email" />
+          <small *ngIf="form.controls.email.touched && form.controls.email.invalid">Saisissez une adresse e-mail valide.</small>
+        </label>
+        <label>
+          Code de vérification
+          <input class="otp-input" type="text" inputmode="numeric" maxlength="6" formControlName="code" autocomplete="one-time-code" placeholder="000000" (input)="onCodeInput($event)" />
+          <small *ngIf="submitted && form.controls.code.invalid">Le code doit contenir exactement 6 chiffres.</small>
+        </label>
+        <div *ngIf="message" class="message success" role="status">{{ message }}</div>
+        <div *ngIf="errorMessage" class="message error" role="alert">{{ errorMessage }}</div>
+        <button class="primary-button" type="submit" [disabled]="verifying">{{ verifying ? 'Vérification...' : 'Vérifier mon adresse e-mail' }}</button>
+        <button class="resend-button" type="button" (click)="sendCode()" [disabled]="sending">{{ sending ? 'Envoi en cours...' : (codeSent ? 'Renvoyer le code' : 'Recevoir le code') }}</button>
+      </form>
+      <p class="help">Le code expire après 10 minutes. Pensez à vérifier le dossier des courriers indésirables.</p>
+    </ng-container>
+
+    <ng-template #verifiedState>
+      <h1>Adresse e-mail vérifiée</h1>
+      <div class="message success">Votre demande est enregistrée et votre adresse e-mail a bien été confirmée.</div>
+      <p class="intro">Vous pouvez maintenant vous connecter et transmettre votre justificatif de paiement.</p>
+      <a routerLink="/login" class="primary-button link-button">Aller à la connexion</a>
+    </ng-template>
+  </section>
+</main>

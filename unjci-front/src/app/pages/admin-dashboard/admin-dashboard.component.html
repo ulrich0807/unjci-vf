@@ -6,17 +6,267 @@
       <p>Pilotez les demandes, validez les paiements et gérez les cartes membres.</p>
     </div>
     <div class="header-actions">
-      <button type="button" class="outline-button" (click)="openScanner()">Scanner une carte</button>
-      <button class="primary-button" (click)="logout()">Déconnexion</button>
+      <button class="outline-button" (click)="logout()">Déconnexion</button>
     </div>
   </header>
 
   <section class="metrics">
     <article><small>Total adhérents</small><strong>{{ members.length }}</strong><span>Registre complet</span></article>
-    <article><small>Actifs</small><strong>{{ count('ACTIVE') }}</strong><span class="green">Cartes valides</span></article>
-    <article><small>En attente</small><strong>{{ count('pending') }}</strong><span class="orange">À examiner</span></article>
+    <article><small>Actifs</small><strong>{{ count('approved') }}</strong><span class="green">Cartes valides</span></article>
+    <article><small>Dossiers à valider</small><strong>{{ countUnderReview() }}</strong><span class="orange">Paiement confirmé</span></article>
     <article><small>Paiements à valider</small><strong>{{ pendingPayments.length }}</strong><span class="orange">Wave</span></article>
   </section>
+
+  <div class="error-message" *ngIf="adminDataError" role="alert">{{ adminDataError }}</div>
+
+  <section class="members-card login-audit-card" aria-labelledby="login-audit-title">
+    <div class="card-heading login-audit-heading">
+      <div>
+        <span>SÉCURITÉ</span>
+        <h2 id="login-audit-title">Historique des connexions</h2>
+        <p>Consultez les tentatives réussies et échouées enregistrées sur la plateforme.</p>
+      </div>
+
+      <form class="login-audit-filters" (ngSubmit)="applyLoginAuditFilters()">
+        <input
+          type="search"
+          name="loginAuditSearch"
+          [(ngModel)]="loginAuditSearch"
+          placeholder="Identifiant, nom ou e-mail..."
+          aria-label="Rechercher dans l'historique des connexions"
+        />
+        <select name="loginAuditStatus" [(ngModel)]="loginAuditStatus" (change)="applyLoginAuditFilters()" aria-label="Filtrer par résultat">
+          <option value="all">Toutes les tentatives</option>
+          <option value="success">Réussies</option>
+          <option value="failure">Échouées</option>
+        </select>
+        <button type="submit" class="login-audit-button primary" [disabled]="loginAuditsLoading">Filtrer</button>
+        <button type="button" class="login-audit-button secondary" (click)="loadLoginAudits()" [disabled]="loginAuditsLoading">
+          Recharger
+        </button>
+      </form>
+    </div>
+
+    <div class="login-audit-message error-message" *ngIf="loginAuditsError" role="alert">
+      <span>{{ loginAuditsError }}</span>
+      <button type="button" (click)="loadLoginAudits()" [disabled]="loginAuditsLoading">Réessayer</button>
+    </div>
+
+    <div class="login-audit-loading" *ngIf="loginAuditsLoading" role="status">Chargement de l’historique des connexions…</div>
+
+    <div class="table-wrap login-audit-table-wrap" *ngIf="loginAudits.length" [attr.aria-busy]="loginAuditsLoading">
+      <table class="login-audit-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Identifiant</th>
+            <th>Compte</th>
+            <th>Résultat</th>
+            <th>Adresse IP</th>
+            <th>Navigateur</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let audit of loginAudits">
+            <td class="login-audit-date">{{ audit.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><code>{{ audit.login || 'Non renseigné' }}</code></td>
+            <td>
+              <div class="login-audit-account" *ngIf="audit.userId; else unknownLoginAccount">
+                <strong>{{ audit.userName || 'Compte sans nom' }}</strong>
+                <small>{{ audit.userEmail || 'E-mail non renseigné' }}</small>
+                <small *ngIf="audit.role">Rôle : {{ audit.role }}</small>
+              </div>
+              <ng-template #unknownLoginAccount><span class="login-audit-muted">Compte non reconnu</span></ng-template>
+            </td>
+            <td>
+              <span class="login-audit-result" [class.success]="audit.success" [class.failure]="!audit.success">
+                {{ audit.success ? 'Réussie' : 'Échouée' }}
+              </span>
+              <small class="login-audit-reason" *ngIf="!audit.success && audit.reason">{{ loginAuditReasonLabel(audit.reason) }}</small>
+            </td>
+            <td><code>{{ audit.ipAddress || 'Non renseignée' }}</code></td>
+            <td>
+              <span class="login-audit-browser" [title]="audit.userAgent || ''">{{ browserLabel(audit.userAgent) }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="empty login-audit-empty" *ngIf="!loginAuditsLoading && !loginAuditsError && !loginAudits.length">
+      <h3>Aucune connexion trouvée</h3>
+      <p>Modifiez les filtres ou attendez de nouvelles tentatives de connexion.</p>
+    </div>
+
+    <div class="login-audit-pagination" *ngIf="loginAuditTotal > 0">
+      <span>{{ loginAuditFirstItem }}–{{ loginAuditLastItem }} sur {{ loginAuditTotal }}</span>
+      <div>
+        <button
+          type="button"
+          class="login-audit-button secondary"
+          (click)="goToLoginAuditPage(loginAuditPage - 1)"
+          [disabled]="loginAuditsLoading || loginAuditPage <= 1"
+          aria-label="Page précédente"
+        >Précédent</button>
+        <strong>Page {{ loginAuditPage }} sur {{ loginAuditLastPage }}</strong>
+        <button
+          type="button"
+          class="login-audit-button secondary"
+          (click)="goToLoginAuditPage(loginAuditPage + 1)"
+          [disabled]="loginAuditsLoading || loginAuditPage >= loginAuditLastPage"
+          aria-label="Page suivante"
+        >Suivant</button>
+      </div>
+    </div>
+  </section>
+
+  <ng-template #catalogSection>
+  <section class="members-card catalog-card">
+    <div class="card-heading catalog-heading">
+      <div>
+        <span>RÉFÉRENTIEL</span>
+        <h2>Entreprises et médias</h2>
+        <p>Les changements sont immédiatement disponibles dans le formulaire d'adhésion.</p>
+      </div>
+      <div class="filters catalog-filters">
+        <input
+          type="search"
+          [ngModel]="catalogSearch"
+          (ngModelChange)="onCatalogSearchChange($event)"
+          placeholder="Rechercher une entreprise ou un média..."
+          aria-label="Rechercher dans le catalogue"
+        />
+        <button type="button" class="catalog-button secondary" (click)="loadPressCompanies()" [disabled]="catalogLoading || catalogAction !== ''">
+          {{ catalogLoading ? 'Actualisation…' : 'Actualiser' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="catalog-message success-message" *ngIf="catalogSuccess" role="status">{{ catalogSuccess }}</div>
+    <div class="catalog-message error-message" *ngIf="catalogError" role="alert">
+      <span>{{ catalogError }}</span>
+      <button type="button" *ngIf="!pressCompanies.length" (click)="loadPressCompanies()">Réessayer</button>
+    </div>
+
+    <div class="catalog-create-grid">
+      <form class="catalog-form" (ngSubmit)="createPressCompany()">
+        <div class="catalog-form-title">
+          <div>
+            <small>NOUVELLE ENTREPRISE</small>
+            <strong>Ajouter une entreprise de presse</strong>
+          </div>
+        </div>
+        <label>
+          Nom de l'entreprise
+          <input type="text" name="newCompanyName" [(ngModel)]="newCompanyName" maxlength="255" required placeholder="Ex. GROUPE RTI" />
+        </label>
+        <label class="catalog-check">
+          <input type="checkbox" name="newCompanyActive" [(ngModel)]="newCompanyActive" />
+          Proposer cette entreprise aux adhérents
+        </label>
+        <button type="submit" class="catalog-button primary" [disabled]="!newCompanyName.trim() || catalogAction !== ''">
+          {{ catalogAction === 'create-company' ? 'Ajout…' : 'Ajouter l\'entreprise' }}
+        </button>
+      </form>
+
+      <form class="catalog-form" (ngSubmit)="createPressMedia()">
+        <div class="catalog-form-title">
+          <div>
+            <small>NOUVEAU MÉDIA</small>
+            <strong>Rattacher un média</strong>
+          </div>
+        </div>
+        <label>
+          Entreprise
+          <select name="newMediaCompanyId" [(ngModel)]="newMediaCompanyId" required [disabled]="!pressCompanies.length">
+            <option [ngValue]="null">Sélectionner une entreprise</option>
+            <option *ngFor="let company of pressCompanies" [ngValue]="company.id">{{ company.name }}</option>
+          </select>
+        </label>
+        <div class="catalog-fields-row">
+          <label>
+            Nom du média
+            <input type="text" name="newMediaName" [(ngModel)]="newMediaName" maxlength="255" required placeholder="Ex. RTI1" />
+          </label>
+          <label>
+            Type
+            <select name="newMediaType" [(ngModel)]="newMediaType">
+              <option *ngFor="let type of mediaTypes" [ngValue]="type">{{ type }}</option>
+            </select>
+          </label>
+        </div>
+        <label class="catalog-check">
+          <input type="checkbox" name="newMediaActive" [(ngModel)]="newMediaActive" />
+          Proposer ce média aux adhérents
+        </label>
+        <button type="submit" class="catalog-button primary" [disabled]="!newMediaCompanyId || !newMediaName.trim() || catalogAction !== ''">
+          {{ catalogAction === 'create-media' ? 'Ajout…' : 'Ajouter le média' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="catalog-list" *ngIf="filteredPressCompanies.length">
+      <div class="catalog-company" [class.catalog-inactive]="!company.isActive" *ngFor="let company of filteredPressCompanies">
+        <div class="catalog-company-heading">
+          <button type="button" class="catalog-company-toggle" (click)="toggleCompanyDetails(company.id)">
+            <strong>{{ company.name }}</strong>
+            <span class="status" [class.active]="company.isActive" [class.pending]="!company.isActive">
+              {{ company.isActive ? 'Active' : 'Inactivée' }}
+            </span>
+            <svg class="catalog-chevron" [class.open]="expandedCompanyIds.has(company.id)" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div class="catalog-media-list" *ngIf="expandedCompanyIds.has(company.id)">
+          <div class="catalog-media-row" *ngFor="let media of company.media">
+            <strong>{{ media.name }}</strong>
+            <small>{{ media.type }}</small>
+            <span class="status" [class.active]="media.isActive" [class.pending]="!media.isActive">
+              {{ media.isActive ? 'Actif' : 'Inactivé' }}
+            </span>
+            <div class="catalog-company-actions">
+              <button class="catalog-button danger" (click)="deleteMedia(media)">Supprimer</button>
+            </div>
+          </div>
+          <div class="catalog-media-row empty" *ngIf="!company.media.length">
+            Aucun média rattaché à cette entreprise.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty catalog-empty" *ngIf="!catalogLoading && pressCompanies.length && !filteredPressCompanies.length">
+      <h3>Aucun résultat</h3>
+      <p>Essayez un autre nom d'entreprise ou de média.</p>
+    </div>
+    <div class="empty catalog-empty" *ngIf="!catalogLoading && !pressCompanies.length && !catalogError">
+      <h3>Catalogue vide</h3>
+      <p>Ajoutez la première entreprise, puis rattachez-lui ses médias.</p>
+    </div>
+
+    <div class="catalog-pagination" *ngIf="filteredPressCompanies.length">
+      <span>{{ catalogFirstItem }}–{{ catalogLastItem }} sur {{ filteredPressCompanies.length }} entreprise{{ filteredPressCompanies.length > 1 ? 's' : '' }}</span>
+      <div>
+        <button
+          type="button"
+          class="catalog-button secondary"
+          (click)="goToCatalogPage(catalogPage - 1)"
+          [disabled]="catalogPage <= 1"
+          aria-label="Page précédente des entreprises"
+        >Précédent</button>
+        <strong>Page {{ catalogPage }} sur {{ catalogTotalPages }}</strong>
+        <button
+          type="button"
+          class="catalog-button secondary"
+          (click)="goToCatalogPage(catalogPage + 1)"
+          [disabled]="catalogPage >= catalogTotalPages"
+          aria-label="Page suivante des entreprises"
+        >Suivant</button>
+      </div>
+    </div>
+  </section>
+  </ng-template>
 
   <!-- NOUVELLE SECTION : VALIDATION DES PAIEMENTS -->
   <section class="members-card" *ngIf="pendingPayments.length > 0">
@@ -30,21 +280,33 @@
       <table>
         <thead>
           <tr>
+            <th>Date</th>
             <th>Adhérent</th>
+            <th>Type</th>
             <th>ID Transaction</th>
             <th>Téléphone</th>
             <th>Montant</th>
+            <th>Ancienne carte</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let payment of pendingPayments">
+            <td>{{ payment.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
               <strong>{{ payment.member?.last_name | uppercase }} {{ payment.member?.first_name }}</strong>
             </td>
+            <td>{{ payment.payment_type === 'renewal' ? 'Renouvellement' : 'Adhésion' }}</td>
             <td><code>{{ payment.transaction_id }}</code></td>
             <td>{{ payment.payment_phone }}</td>
             <td>{{ payment.amount | number:'1.0-0' }} FCFA</td>
+            <td>
+              <ng-container *ngIf="payment.payment_type === 'renewal'; else noOldCard">
+                <small>{{ payment.previous_member_number }}</small><br>
+                <a *ngIf="payment.old_member_card_path" [href]="getPhotoUrl(payment.old_member_card_path)" target="_blank">Voir la carte</a>
+              </ng-container>
+              <ng-template #noOldCard>—</ng-template>
+            </td>
             <td>
               <div class="actions">
                 <button class="validate" (click)="validatePayment(payment.id, 'approved')">Approuver</button>
@@ -58,17 +320,20 @@
   </section>
 
   <!-- REGISTRE DES MEMBRES EXISTANT -->
-  <section class="members-card" style=" margin: 24px 0; ">
+  <section class="members-card">
     <div class="card-heading">
-      <div><span>REGISTRE</span><h2>Liste des adhérents</h2></div>
+      <div>
+        <span>RÉGISTRE</span>
+        <h2>Liste des adhérents</h2>
+      </div>
       <div class="filters">
-        <input [(ngModel)]="search" placeholder="Rechercher un adhérent..." (input)="filterMembers()" />
+        <input type="text" [(ngModel)]="search" (ngModelChange)="filterMembers()" placeholder="Rechercher par nom..." />
         <select [(ngModel)]="statusFilter" (change)="filterMembers()">
           <option value="">Tous les statuts</option>
-          <option value="pending">En attente</option>
-          <option value="ACTIVE">Actif</option>
-          <option value="SUSPENDUE">Suspendu</option>
-          <option value="RESILIEE">Résilié</option>
+          <option value="pending">En attente (Nouvelle Adhésion)</option>
+          <option value="under_review">À valider</option>
+          <option value="approved">Actif (Cartes valides)</option>
+          <option value="rejected">Rejeté</option>
         </select>
       </div>
     </div>
@@ -90,14 +355,40 @@
                 </div>
               </div>
             </td>
-            <td><code>{{ member.member_number || 'Non attribué' }}</code></td>
-            <td>{{ member.request_type }}<small>{{ member.created_at | date:'dd/MM/yyyy' }}</small></td>
-            <td><span class="status" [attr.data-status]="member.status">{{ member.status }}</span></td>
             <td>
-             <div class="actions">
-          <button class="validate" (click)="setStatus(member, 'approved')" [disabled]="member.status === 'approved'">Approuver</button>
-           <button class="terminate" (click)="setStatus(member, 'rejected')" [disabled]="member.status === 'rejected'">Rejeter</button>
-            </div>
+              <code *ngIf="member.member_number; else unofficialNumber">{{ member.member_number }}</code>
+              <ng-template #unofficialNumber>
+                <ng-container *ngIf="member.current_member_number; else noMemberNumber">
+                  <code>{{ member.current_member_number }}</code>
+                  <small>Déclaré — à vérifier</small>
+                </ng-container>
+              </ng-template>
+              <ng-template #noMemberNumber><small>Non attribué</small></ng-template>
+            </td>
+            <td>{{ member.request_type }}<small>{{ member.created_at | date:'dd/MM/yyyy HH:mm' }}</small></td>
+            <td><span class="status" [attr.data-status]="member.membership_stage || member.status">{{ memberStageLabel(member) }}</span></td>
+            <td>
+              <div class="actions" *ngIf="member.membership_stage === 'under_review'; else noReviewAction">
+                <label *ngIf="requiresMemberNumberVerification(member)">
+                  <small>Numéro UNJCI vérifié</small>
+                  <input
+                    type="text"
+                    maxlength="10"
+                    placeholder="UJ25-00122"
+                    [value]="memberNumberDrafts[member.id]"
+                    (input)="onVerifiedMemberNumberInput(member, $any($event.target).value)"
+                    [attr.aria-label]="'Numéro UNJCI vérifié pour ' + member.first_name + ' ' + member.last_name"
+                  />
+                </label>
+                <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="setStatus(member, 'approved')">
+                  {{ memberActionInProgress[member.id] ? 'Enregistrement…' : approvalActionLabel(member) }}
+                </button>
+                <button class="terminate" [disabled]="memberActionInProgress[member.id]" (click)="setStatus(member, 'rejected')">Rejeter</button>
+                <small class="error-message" *ngIf="memberActionErrors[member.id]" role="alert">
+                  {{ memberActionErrors[member.id] }}
+                </small>
+              </div>
+              <ng-template #noReviewAction><small>Aucune action requise</small></ng-template>
             </td>
           </tr>
         </tbody>
@@ -109,7 +400,7 @@
 
 
   <!-- NOUVELLE SECTION : HISTORIQUE COMPLET DES PAIEMENTS -->
-  <section class="members-card" style=" margin: 24px 0; ">
+  <section class="members-card payment-history-card" style=" margin: 24px 0; ">
     <div class="card-heading">
       <div>
         <span>FINANCES</span>
@@ -123,8 +414,8 @@
         <!-- Filtre par type -->
         <select [(ngModel)]="paymentTypeFilter" (change)="filterPayments()">
           <option value="">Tous les types</option>
-          <option value="adhésion">Adhésion (10.000 FCFA)</option>
-          <option value="renouvellement">Renouvellement (5.000 FCFA)</option>
+          <option value="adhesion">Adhésion (10.000 FCFA)</option>
+          <option value="renewal">Renouvellement (5.000 FCFA)</option>
         </select>
 
         <!-- Filtre par statut -->
@@ -152,11 +443,11 @@
         </thead>
         <tbody>
           <tr *ngFor="let p of filteredPayments">
-            <td>{{ p.created_at | date:'dd/MM/yyyy' }}</td>
+            <td>{{ p.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
               <strong>{{ p.member?.last_name | uppercase }} {{ p.member?.first_name }}</strong>
             </td>
-            <td>{{ p.member?.request_type }}</td>
+            <td>{{ p.payment_type === 'renewal' ? 'Renouvellement' : 'Adhésion' }}</td>
             <td>{{ p.payment_phone }}</td>
             <td><code>{{ p.transaction_id }}</code></td>
             <td><strong>{{ p.amount | number:'1.0-0' }} FCFA</strong></td>
@@ -180,5 +471,6 @@
     </ng-template>
   </section>
 
-  <!-- <section *ngIf="scannerVisible" id="scanner-carte" class="scanner-section"> ... </section> -->
+  <ng-container *ngTemplateOutlet="catalogSection"></ng-container>
+
 </div>

@@ -1,0 +1,74 @@
+MISE À JOUR UNJCI SANS TERMINAL / SSH
+
+Ce déploiement s'effectue uniquement avec phpMyAdmin et le gestionnaire de
+fichiers de l'hébergeur (ou un logiciel FTP). Aucune compression, aucun worker,
+cron ou terminal n'est requis.
+
+AVANT DE COMMENCER
+
+1. Sauvegarder la base de données depuis phpMyAdmin.
+2. Sauvegarder les fichiers actuels de public_html.
+3. Ne jamais supprimer ni remplacer :
+   - public_html/unjci-api/.env
+   - public_html/unjci-api/storage
+   - public_html/api/storage
+
+ÉTAPE 1 — METTRE LA BASE À JOUR AVEC PHPMYADMIN
+
+1. Ouvrir phpMyAdmin depuis le panneau de l'hébergeur.
+2. Sélectionner la base utilisée par le site UNJCI.
+3. Ouvrir l'onglet « Importer ».
+4. Choisir le fichier :
+   unjci-api/database/application-workflow-install.sql
+5. Lancer l'importation.
+6. Le dernier résultat doit afficher :
+   application_submitted_at_installee = 1
+   approved_at_installee = 1
+7. Importer ensuite :
+   unjci-api/database/current-member-number-unique-install.sql
+8. Le dernier résultat doit afficher :
+   groupes_de_doublons_detectes = 0
+   index_unique_installe = 1
+   migration_enregistree = 1
+
+Les scripts peuvent être réimportés sans créer les colonnes ou l'index en
+double. Ne pas importer preloaded-members-import.sql : cette ancienne liste
+n'est plus une source de validation des numéros UNJCI.
+
+Si des doublons sont signalés, aucune donnée n'est supprimée et l'index n'est
+pas créé. Corriger les numéros concernés manuellement, puis réimporter
+current-member-number-unique-install.sql.
+
+ÉTAPE 2 — ENVOYER LES FICHIERS
+
+1. Ouvrir sur votre ordinateur le dossier deploiement-complet-sans-terminal.
+2. Envoyer SON CONTENU directement dans public_html en conservant
+   l'arborescence. Ne pas envoyer le dossier parent lui-même.
+3. Choisir « fusionner » et accepter le remplacement des fichiers portant le
+   même nom.
+4. Ne pas utiliser une synchronisation qui supprimerait les fichiers distants
+   absents du dossier local.
+5. Ne créer, envoyer ou extraire aucune archive ZIP.
+
+ÉTAPE 3 — VÉRIFIER
+
+1. Ouvrir /api/health : la réponse doit contenir "status": "ok".
+2. Créer une inscription de test et se connecter avec son adresse e-mail.
+3. Vérifier que le nouveau dossier n'a pas encore de numéro UNJCI.
+4. Déposer un paiement depuis l'espace personnel.
+5. Dans l'administration, confirmer le paiement : le dossier doit passer en
+   validation et le premier e-mail doit partir.
+6. Approuver ensuite le dossier : le numéro UNJCI doit être attribué et le
+   second e-mail doit partir.
+
+E-MAILS
+
+Les e-mails de mise en validation et d'approbation sont envoyés directement
+pendant l'action de l'administrateur. Il n'est pas nécessaire de lancer
+« php artisan queue:work » ni de configurer une tâche cron.
+
+SI L'ANCIEN ÉCRAN RESTE AFFICHÉ
+
+- Actualiser avec Ctrl+F5 ou vider le cache du navigateur.
+- Si le panneau d'hébergement propose « Redémarrer PHP » ou « Réinitialiser
+  OPcache », utiliser cette fonction. Aucun terminal n'est nécessaire.

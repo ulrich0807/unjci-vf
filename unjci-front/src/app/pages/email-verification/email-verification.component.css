@@ -1,0 +1,22 @@
+:host { display: block; }
+.verification-page { width: min(100% - 32px, 650px); min-height: calc(100vh - 180px); margin: 0 auto 60px; display: grid; place-items: center; }
+.verification-card { width: 100%; padding: clamp(28px, 6vw, 52px); border: 1px solid #dce5e0; border-radius: 28px; background: #fff; box-shadow: 0 24px 60px rgba(13,55,41,.12); text-align: center; }
+.mail-icon { width: 62px; height: 62px; margin: 0 auto 20px; display: grid; place-items: center; border-radius: 18px; color: #fff; background: linear-gradient(135deg,#075a43,#099369); font-size: 1.7rem; box-shadow: 0 12px 26px rgba(7,90,67,.22); }
+.section-label { color: #e98519; font-size: .72rem; font-weight: 900; letter-spacing: .14em; }
+h1 { margin: 10px 0 12px; color: #16372b; font-size: clamp(2rem,6vw,2.65rem); letter-spacing: -.04em; }
+.intro, .help { color: #66776f; line-height: 1.65; }
+form { margin-top: 28px; display: grid; gap: 16px; text-align: left; }
+label { display: grid; gap: 9px; color: #344b41; font-weight: 750; }
+input { height: 54px; padding: 0 16px; border: 1.5px solid #cedbd5; border-radius: 13px; outline: none; font: inherit; }
+input:focus { border-color: #09865f; box-shadow: 0 0 0 4px rgba(9,134,95,.1); }
+.otp-input { height: 66px; text-align: center; color: #075a43; font-size: 1.8rem; font-weight: 900; letter-spacing: .4em; }
+small { color: #b42318; font-size: .76rem; }
+.message { padding: 14px 16px; border-radius: 12px; line-height: 1.5; text-align: left; }
+.success { color: #075a43; border: 1px solid #a9dec9; background: #eaf8f2; }
+.error { color: #a52820; border: 1px solid #f1b8b4; background: #fff1f0; }
+.primary-button, .resend-button { min-height: 52px; border-radius: 13px; font-weight: 800; cursor: pointer; }
+.primary-button { border: 0; color: #fff; background: linear-gradient(135deg,#075a43,#099369); }
+.resend-button { border: 1px solid #b9cec4; color: #087356; background: #fff; }
+button:disabled { opacity: .65; cursor: wait; }
+.help { margin: 24px 0 0; font-size: .8rem; }
+.link-button { margin-top: 12px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

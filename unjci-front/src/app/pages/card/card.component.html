@@ -1,59 +1,42 @@
-<div class="page">
-  <!-- <section class="hero compact">
-    <span class="eyebrow">CARTE NUMÉRIQUE</span>
-    <h1>Votre carte de membre</h1>
-    <p>
-      Le QR code renvoie vers la fiche officielle de vérification enregistrée dans la plateforme.
-    </p>
-  </section> -->
-  <div *ngIf="member; else empty" class="card-layout">
-    <article class="member-card">
-      <div class="card-head">
-        <div class="logo">U</div>
-        <div>
-          <strong>UNJCI</strong><small>Union Nationale des Journalistes de Côte d’Ivoire</small>
+<!-- C'est ce conteneur qui va empêcher le contenu de passer sous le menu -->
+<div class="carte-page-wrapper">
+
+  <div class="card-container" *ngIf="member && member.status === 'approved'; else notActive">
+    <div class="unjci-id-card">
+      <!-- Section Photo avec les carrés oranges -->
+      <div class="photo-wrapper">
+        <div class="orange-square top-right"></div>
+        <div class="photo-frame">
+          <img *ngIf="member.photo_file_path" [src]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
+          <span *ngIf="!member.photo_file_path">photo</span>
         </div>
-        <span class="chip">MEMBRE</span>
+        <div class="orange-square bottom-left"></div>
       </div>
-      <div class="card-body">
-        <div class="photo">
-          <img *ngIf="member.photoDataUrl" [src]="member.photoDataUrl" /><span
-            *ngIf="!member.photoDataUrl"
-            >{{ member.firstName[0] }}{{ member.lastName[0] }}</span
-          >
+
+      <!-- Informations -->
+      <div class="info-section">
+        <h2 class="name">{{ member.last_name | uppercase }} {{ member.first_name }}</h2>
+        <p class="function">{{ member.function_title || 'Journaliste' }}</p>
+        <div class="badge-membre">MEMBRE</div>
+      </div>
+
+      <!-- Pied de carte -->
+      <div class="footer-section">
+        <div class="qr-code">
+          <qrcode [qrdata]="qrCodeUrl" [width]="80" [errorCorrectionLevel]="'M'"></qrcode>
         </div>
-        <div class="identity">
-          <small>Nom et prénoms</small>
-          <h2>{{ member.lastName | uppercase }} {{ member.firstName }}</h2>
-          <p>{{ member.functionTitle }} • {{ member.employers }}</p>
-          <div class="meta">
-            <div>
-              <small>N° adhérent</small><strong>{{ member.memberNumber }}</strong>
-            </div>
-            <div>
-              <small>Valide jusqu’au</small
-              ><strong>{{ member.pressCardExpiry | date: 'dd/MM/yyyy' }}</strong>
-            </div>
-          </div>
-        </div>
-        <div class="qr">
-          <img [src]="qrDataUrl" alt="QR code de vérification" /><small
-            >Scanner pour vérifier</small
-          >
+        <div class="logo">
+          <img src="assets/images/logo.jpg" alt="UNJCI" width="100" />
         </div>
       </div>
-      <div class="card-foot">
-        <span>www.unjci.ci</span
-        ><span [class.active]="member.status === 'ACTIVE'">{{ member.status }}</span>
-      </div>
-    </article>
+    </div>
   </div>
-  <ng-template #empty
-    ><section class="panel empty">
-      <img class="brand-logo" src="./assets/images/carte.jpg" alt="carte UNJCI" width="50%" />
-      <h2>Aucune demande enregistrée</h2>
-      <p>Commencez par remplir le formulaire d’adhésion.</p>
-      <a routerLink="/" class="btn btn-primary">Faire une demande</a>
-    </section>
+
+  <ng-template #notActive>
+    <!-- J'ai ajouté un peu de style CSS dans la classe ci-dessous pour que le message soit plus joli -->
+    <div class="not-active-msg alert-box">
+      <p>Votre carte n'est pas encore disponible ou votre compte est en attente de validation.</p>
+    </div>
   </ng-template>
+
 </div>

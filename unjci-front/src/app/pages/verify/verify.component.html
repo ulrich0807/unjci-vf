@@ -1,24 +1,49 @@
-<div class="page">
-  <section class="hero compact"><span class="eyebrow">CONTRÔLE D’AUTHENTICITÉ</span><h1>Scanner une carte UNJCI</h1><p>Scannez le QR code ou collez son code de vérification. Le statut est interrogé dans le registre local de démonstration.</p></section>
-  <div class="verify-grid">
-    <section class="panel scanner">
-      <h2>Lecteur QR code</h2>
-      <div class="camera" [class.on]="scanning"><video #video></video><div *ngIf="!scanning" class="camera-placeholder"><span>⌗</span><p>La caméra s’affichera ici</p></div></div>
-      <button *ngIf="!scanning" class="btn btn-primary" (click)="startScanner()">Activer la caméra</button><button *ngIf="scanning" class="btn btn-outline" (click)="stopScanner()">Arrêter la caméra</button>
-      <div class="separator"><span>ou</span></div>
-      <label>Code ou URL de vérification<input [(ngModel)]="token" placeholder="Collez le code du QR"></label><button class="btn btn-secondary" (click)="verify()" [disabled]="!token">Vérifier maintenant</button>
-      <p class="error" *ngIf="error">{{error}}</p>
-    </section>
+<div class="verify-wrapper">
+  
+  <div class="loading" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Vérification de l'authenticité en cours...</p>
+  </div>
 
-    <section class="panel result" *ngIf="checked">
-      <ng-container *ngIf="member; else invalid">
-        <div class="result-head valid"><span>✓</span><div><small>RÉSULTAT DU CONTRÔLE</small><h2>Carte authentique</h2></div></div>
-        <div class="profile"><div class="photo"><img *ngIf="member.photoDataUrl" [src]="member.photoDataUrl"><span *ngIf="!member.photoDataUrl">{{member.firstName[0]}}{{member.lastName[0]}}</span></div><div><h3>{{member.lastName | uppercase}} {{member.firstName}}</h3><p>{{member.functionTitle}} • {{member.employers}}</p><span [class]="member.status === 'ACTIVE' ? 'badge badge-active' : 'badge badge-invalid'">{{member.status}}</span></div></div>
-        <dl><div><dt>N° d’adhérent</dt><dd>{{member.memberNumber}}</dd></div><div><dt>Carte de presse</dt><dd>{{member.pressCardNumber}}</dd></div><div><dt>Validité déclarée</dt><dd>{{member.pressCardExpiry | date:'dd MMMM yyyy'}}</dd></div><div><dt>Type de demande</dt><dd>{{member.requestType}}</dd></div></dl>
-        <div class="warning" *ngIf="member.status !== 'ACTIVE'">La carte existe, mais son statut actuel ne permet pas de la considérer comme valide.</div><button class="btn btn-outline" (click)="reset()">Scanner une autre carte</button>
-      </ng-container>
-      <ng-template #invalid><div class="result-head invalid"><span>×</span><div><small>RÉSULTAT DU CONTRÔLE</small><h2>Carte non reconnue</h2></div></div><p>Aucune carte ne correspond à ce code. Le QR code peut être falsifié, incomplet ou ne pas provenir de l’UNJCI.</p><button class="btn btn-outline" (click)="reset()">Réessayer</button></ng-template>
-    </section>
-    <section class="panel result waiting" *ngIf="!checked"><span>🛡️</span><h2>En attente d’un scan</h2><p>Le résultat officiel apparaîtra ici avec la photo, le numéro d’adhérent et le statut de la carte.</p></section>
+  <div class="verify-card" *ngIf="!isLoading">
+    
+    <!-- ÉCRAN : CARTE INVALIDE -->
+    <div class="state-container error-state" *ngIf="errorMsg">
+      <div class="icon">❌</div>
+      <h2>Vérification échouée</h2>
+      <p>{{ errorMsg }}</p>
+      <button class="btn-return" (click)="goBack()">Retour à l'accueil</button>
+    </div>
+
+    <!-- ÉCRAN : CARTE VALIDE -->
+    <div class="state-container success-state" *ngIf="member">
+      <div class="badge-valid">✅ CARTE AUTHENTIQUE</div>
+      
+      <div class="member-profile">
+        <div class="avatar">
+           <img *ngIf="member.photo_file_path" [src]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
+           <span *ngIf="!member.photo_file_path">{{member.first_name?.[0]}}{{member.last_name?.[0]}}</span>
+        </div>
+        <h3>{{ member.last_name | uppercase }} {{ member.first_name }}</h3>
+        <p class="job-title">{{ member.function_title || 'Journaliste' }}</p>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <small>N° Matricule</small>
+          <strong>{{ member.member_number }}</strong>
+        </div>
+        <div class="detail-item">
+          <small>Statut du compte</small>
+          <strong class="text-green">Actif</strong>
+        </div>
+        <div class="detail-item full-width">
+          <small>Email personnel</small>
+          <strong>{{ member.personal_email }}</strong>
+        </div>
+      </div>
+      
+    </div>
+
   </div>
 </div>

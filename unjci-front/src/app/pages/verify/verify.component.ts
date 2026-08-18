@@ -1,25 +1,70 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
-import { MemberService } from '../../core/member.service';
-import { MemberApplication } from '../../core/member.model';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { AuthService } from '../../core/auth.service';
+import { environment } from '../../../environments/environment';
 
-@Component({selector:'app-verify',standalone:true,imports:[CommonModule,FormsModule],templateUrl:'./verify.component.html',styleUrl:'./verify.component.css'})
-export class VerifyComponent implements OnInit,OnDestroy {
-  @ViewChild('video') video?: ElementRef<HTMLVideoElement>;
-  token=''; member?:MemberApplication; checked=false; scanning=false; error=''; controls?:IScannerControls;
-  constructor(private route:ActivatedRoute,private members:MemberService){}
-  ngOnInit(){const token=this.route.snapshot.paramMap.get('token');if(token){this.token=token;this.verify();}}
-  verify(raw=this.token){
-    const token=this.extractToken(raw); this.member=this.members.getByToken(token); this.checked=true; this.stopScanner();
+@Component({
+  selector: 'app-verify',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './verify.component.html',
+  styleUrl: './verify.component.css'
+})
+export class VerifyComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private http = inject(HttpClient);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  token: string | null = null;
+  member: any = null;
+  errorMsg: string | null = null;
+  isLoading = true;
+  readonly storageUrl = environment.storageUrl;
+
+  ngOnInit(): void {
+    // 1. On récupère le code unique dans l'URL (ex: /verification/ABcd123...)
+    this.token = this.route.snapshot.paramMap.get('token');
+
+    if (!this.token) {
+      this.errorMsg = "Aucun code de carte détecté.";
+      this.isLoading = false;
+      return;
+    }
+
+    this.checkAndVerify(this.token);
   }
-  extractToken(value:string){try{const url=new URL(value);return url.pathname.split('/').filter(Boolean).at(-1)||value;}catch{return value.trim();}}
-  async startScanner(){
-    this.error='';this.scanning=true;setTimeout(async()=>{try{const reader=new BrowserQRCodeReader();this.controls=await reader.decodeFromVideoDevice(undefined,this.video!.nativeElement,(result)=>{if(result)this.verify(result.getText());});}catch{this.error='Impossible d’accéder à la caméra. Vérifiez les autorisations ou utilisez la saisie manuelle.';this.scanning=false;}},0);
+
+  checkAndVerify(token: string): void {
+    const session = this.auth.getSession();
+    
+    // 2. Si l'agent n'est pas connecté, on l'envoie vers le login avec l'URL en mémoire
+    if (!session || !session.token) {
+      this.router.navigate(['/login'], { queryParams: { returnUrl: `/verification/${token}` } });
+      return;
+    }
+
+    // 3. Si l'agent est connecté, on interroge Laravel
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session.token}` });
+
+    this.http.get(`${environment.apiUrl}/verify-card/${token}`, { headers }).subscribe({
+      next: (res: any) => {
+        this.member = res.member;
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.errorMsg = "Cette carte est introuvable ou n'est plus valide.";
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
-  stopScanner(){this.controls?.stop();this.controls=undefined;this.scanning=false;}
-  reset(){this.member=undefined;this.checked=false;this.token='';this.stopScanner();}
-  ngOnDestroy(){this.stopScanner();}
+
+  goBack(): void {
+    this.router.navigate(['/']);
+  }
 }

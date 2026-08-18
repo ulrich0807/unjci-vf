@@ -1,31 +1,29 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AuthService } from './core/auth.service'; 
 
 @Component({
-  selector: 'app-root', // Ou le sélecteur correspondant à ce composant
+  selector: 'app-root', 
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './app.html', // Ajuste le chemin
-  styleUrl: './app.css' // Ajuste le chemin
+  templateUrl: './app.html', 
+  styleUrl: './app.css' 
 })
 export class App {
   private auth = inject(AuthService);
+  private router = inject(Router);
 
   isMenuOpen = false;
   isScrolled = false;
 
-  // Vérifie dynamiquement si une session existe
-  get isLoggedIn(): boolean {
-    return this.auth.getSession() !== null;
+  get session() {
+    return this.auth.getSession();
   }
 
-  // Détermine la bonne URL pour le bouton "mon espace"
-  get dashboardLink(): string {
-    const session = this.auth.getSession();
-    if (!session) return '/login';
-    return session.role === 'admin' ? '/administration' : '/espace-membre';
+  get role() {
+    // CORRECTION : On accède directement au rôle depuis la session
+    return this.session?.role;
   }
 
   toggleMenu(): void {
@@ -36,7 +34,12 @@ export class App {
     this.isMenuOpen = false;
   }
 
-  // Détection du défilement pour l'effet sur le header
+  logout(): void {
+    this.auth.logout();
+    this.closeMenu();
+    this.router.navigate(['/login']);
+  }
+
   @HostListener('window:scroll', [])
   onWindowScroll() {
     this.isScrolled = window.scrollY > 50;

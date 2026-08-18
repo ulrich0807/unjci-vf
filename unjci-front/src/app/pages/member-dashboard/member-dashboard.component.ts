@@ -1,9 +1,36 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+
+type PaymentMode = 'adhesion' | 'renewal';
+type MembershipStage = 'awaiting_payment' | 'payment_pending' | 'under_review' | 'approved' | 'rejected';
+
+const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; description: string }> = {
+  awaiting_payment: {
+    label: 'En attente de paiement',
+    description: 'Effectuez le paiement depuis votre espace personnel pour poursuivre votre demande.',
+  },
+  payment_pending: {
+    label: 'Paiement en cours de confirmation',
+    description: 'Votre paiement a été transmis. Sa confirmation est en cours.',
+  },
+  under_review: {
+    label: 'Dossier en cours de validation',
+    description: 'Votre paiement est confirmé et votre demande est examinée par l’UNJCI.',
+  },
+  approved: {
+    label: 'Adhésion approuvée',
+    description: 'Votre adhésion est validée. Votre numéro UNJCI est disponible dans votre espace.',
+  },
+  rejected: {
+    label: 'Demande non approuvée',
+    description: 'Votre demande nécessite une régularisation. Contactez l’UNJCI pour connaître la suite à donner.',
+  },
+};
 
 @Component({
   selector: 'app-member-dashboard',
@@ -18,10 +45,11 @@ export class MemberDashboard implements OnInit {
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
 
-  // Ajoute ces variables au début de ta classe
-  expectedAmount: number = 10000;
-  hasPendingPayment = false;
+  expectedAmount = 10000;
+  paymentMode: PaymentMode = 'adhesion';
+  membershipStage: MembershipStage = 'awaiting_payment';
   savingPayment = false;
+  paymentError = '';
   
   // 1. On injecte le détecteur de changement
   private cdr = inject(ChangeDetectorRef);
@@ -36,8 +64,19 @@ export class MemberDashboard implements OnInit {
 
   profileForm: FormGroup;
   paymentProofForm: FormGroup;
+  passwordForm: FormGroup;
+  changingPassword = false;
+  passwordSaved = false;
+  passwordError = '';
   
   history: any[] = [];
+
+  readonly membershipSteps: ReadonlyArray<{ stage: Exclude<MembershipStage, 'rejected'>; label: string }> = [
+    { stage: 'awaiting_payment', label: 'En attente de paiement' },
+    { stage: 'payment_pending', label: 'Paiement en confirmation' },
+    { stage: 'under_review', label: 'Dossier en validation' },
+    { stage: 'approved', label: 'Approuvé' },
+  ];
 
   constructor() {
     this.profileForm = this.fb.group({
@@ -49,8 +88,14 @@ export class MemberDashboard implements OnInit {
     });
 
     this.paymentProofForm = this.fb.group({
-      paymentPhone: [''],
-      transactionId: ['']
+      paymentPhone: ['', Validators.required],
+      transactionId: ['', Validators.required],
+    });
+
+    this.passwordForm = this.fb.group({
+      currentPassword: ['', Validators.required],
+      newPassword: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', Validators.required],
     });
   }
 
@@ -70,7 +115,7 @@ export class MemberDashboard implements OnInit {
       'Authorization': `Bearer ${session.token}`
     });
 
-    this.http.get('http://127.0.0.1:8000/api/member/profile', { headers }).subscribe({
+    this.http.get(`${environment.apiUrl}/member/profile`, { headers }).subscribe({
       next: (data: any) => {
         // 1. On mappe les données
         this.member = {
@@ -78,7 +123,9 @@ export class MemberDashboard implements OnInit {
           firstName: data.first_name,
           lastName: data.last_name,
           memberNumber: data.member_number,
-          photoDataUrl: data.photo_file_path ? `http://127.0.0.1:8000/storage/${data.photo_file_path}` : null,
+          proposedMemberNumber: data.current_member_number,
+          requestType: data.request_type,
+          photoDataUrl: data.photo_file_path ? `${environment.storageUrl}/${data.photo_file_path}` : null,
           paymentPhone: data.payment_phone,
           transactionId: data.transaction_id,
         };
@@ -92,10 +139,11 @@ export class MemberDashboard implements OnInit {
           functionTitle: data.function_title
         });
         
-        // 3. ⚠️ LES NOUVELLES LIGNES DOIVENT ÊTRE ICI ! ⚠️
-        this.expectedAmount = data.request_type === 'Renouvellement' ? 5000 : 10000;
         this.history = data.payments || [];
-        this.hasPendingPayment = this.history.some((p: any) => p.status === 'pending');
+        this.paymentMode = this.resolvePaymentMode(data);
+        this.membershipStage = this.resolveMembershipStage(data, this.history);
+
+        this.expectedAmount = this.amountFor(this.paymentMode);
         
         // 4. On arrête le chargement et on met à jour l'écran
         this.isLoading = false;
@@ -120,19 +168,73 @@ export class MemberDashboard implements OnInit {
     }, 3000);
   }
 
-savePaymentProof(): void {
-    if (this.paymentProofForm.invalid) return;
+  changePassword(): void {
+    this.passwordError = '';
+    this.passwordSaved = false;
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.passwordForm.getRawValue();
+    if (value.newPassword !== value.confirmPassword) {
+      this.passwordError = 'Les deux nouveaux mots de passe ne correspondent pas.';
+      return;
+    }
+
+    this.changingPassword = true;
+    this.auth.changePassword({
+      current_password: value.currentPassword,
+      password: value.newPassword,
+      password_confirmation: value.confirmPassword,
+    }).subscribe({
+      next: () => {
+        this.changingPassword = false;
+        this.passwordSaved = true;
+        this.passwordForm.reset();
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        this.changingPassword = false;
+        this.passwordError = error.error?.errors?.current_password?.[0]
+          || error.error?.errors?.password?.[0]
+          || 'Le mot de passe n’a pas pu être modifié.';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  startPayment(): void {
+    this.paymentMode = this.resolvePaymentMode(this.member);
+    this.expectedAmount = this.amountFor(this.paymentMode);
+    this.paymentError = '';
+    this.paymentProofForm.reset();
+    this.addingPaymentProof = true;
+  }
+
+  cancelPayment(): void {
+    this.addingPaymentProof = false;
+    this.paymentError = '';
+    this.paymentProofForm.reset();
+  }
+
+  savePaymentProof(): void {
+    this.paymentError = '';
+    if (this.paymentProofForm.invalid) {
+      this.paymentProofForm.markAllAsTouched();
+      return;
+    }
 
     this.savingPayment = true;
     const session = this.auth.getSession();
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
 
-    const payload = {
-      ...this.paymentProofForm.value,
-      amount: this.expectedAmount
-    };
+    const payload = new FormData();
+    payload.append('paymentPhone', this.paymentProofForm.value.paymentPhone || '');
+    payload.append('transactionId', this.paymentProofForm.value.transactionId || '');
+    payload.append('paymentType', this.paymentMode);
 
-    this.http.post('http://127.0.0.1:8000/api/member/payment', payload, { headers }).subscribe({
+    this.http.post(`${environment.apiUrl}/member/payment`, payload, { headers }).subscribe({
       next: (res: any) => {
         this.addingPaymentProof = false;
         this.savingPayment = false;
@@ -140,8 +242,8 @@ savePaymentProof(): void {
         
         // On ajoute directement le nouveau paiement à l'historique visuel
         this.history.unshift(res.payment);
-        this.hasPendingPayment = true;
-        this.paymentProofForm.reset();
+        this.membershipStage = 'payment_pending';
+        this.cancelPayment();
 
         setTimeout(() => {
           this.paymentSaved = false;
@@ -152,9 +254,84 @@ savePaymentProof(): void {
       },
       error: (err) => {
         console.error('Erreur lors de l\'enregistrement', err);
+        this.paymentError = err.error?.message || 'Le paiement n’a pas pu être transmis.';
         this.savingPayment = false;
       }
     });
+  }
+
+  get membershipStageLabel(): string {
+    return MEMBERSHIP_STAGE_COPY[this.membershipStage].label;
+  }
+
+  get membershipStageDescription(): string {
+    return MEMBERSHIP_STAGE_COPY[this.membershipStage].description;
+  }
+
+  get hasMemberNumber(): boolean {
+    return Boolean(this.member?.member_number);
+  }
+
+  get proposedMemberNumber(): string {
+    if (this.hasMemberNumber) return '';
+    return String(this.member?.current_member_number || this.member?.proposedMemberNumber || '').trim();
+  }
+
+  get paymentActionAvailable(): boolean {
+    return !['payment_pending', 'under_review', 'rejected'].includes(this.membershipStage);
+  }
+
+  isCurrentMembershipStep(stage: Exclude<MembershipStage, 'rejected'>): boolean {
+    return this.membershipStage === stage;
+  }
+
+  isCompletedMembershipStep(stage: Exclude<MembershipStage, 'rejected'>): boolean {
+    if (this.membershipStage === 'rejected') return false;
+
+    const currentIndex = this.membershipSteps.findIndex(item => item.stage === this.membershipStage);
+    const stepIndex = this.membershipSteps.findIndex(item => item.stage === stage);
+    return currentIndex > stepIndex;
+  }
+
+  private resolvePaymentMode(member: any): PaymentMode {
+    const requestType = String(member?.request_type || member?.requestType || '').toLowerCase();
+    if (requestType === 'renewal') return 'renewal';
+    if (requestType === 'adhesion') return 'adhesion';
+
+    return member?.member_number ? 'renewal' : 'adhesion';
+  }
+
+  private amountFor(mode: PaymentMode): number {
+    return mode === 'renewal' ? 5000 : 10000;
+  }
+
+  private resolveMembershipStage(member: any, payments: any[]): MembershipStage {
+    const reportedStage = String(member?.membership_stage || '').toLowerCase();
+    const memberStatus = String(member?.status || '').toLowerCase();
+    if (reportedStage === 'rejected' || memberStatus === 'rejected') return 'rejected';
+
+    const latestPayment = payments[0];
+    if (latestPayment?.status === 'pending') return 'payment_pending';
+    if (this.isMembershipStage(reportedStage)) return reportedStage;
+
+    const submittedAt = this.toTimestamp(member?.application_submitted_at);
+    const approvedAt = this.toTimestamp(member?.approved_at);
+    if (submittedAt !== null && (approvedAt === null || submittedAt > approvedAt)) return 'under_review';
+
+    if (memberStatus === 'approved' || memberStatus === 'active' || approvedAt !== null) return 'approved';
+    if (latestPayment?.status === 'approved') return 'under_review';
+
+    return 'awaiting_payment';
+  }
+
+  private isMembershipStage(value: string): value is MembershipStage {
+    return ['awaiting_payment', 'payment_pending', 'under_review', 'approved', 'rejected'].includes(value);
+  }
+
+  private toTimestamp(value: unknown): number | null {
+    if (!value) return null;
+    const timestamp = Date.parse(String(value));
+    return Number.isNaN(timestamp) ? null : timestamp;
   }
 
   scrollToSection(sectionId: string): void {

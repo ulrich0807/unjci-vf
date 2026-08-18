@@ -21,7 +21,7 @@
   <section class="login-panel">
     <div class="login-card">
       <div class="mobile-logo">
-        <img src="/assets/images/logo.jpg" alt="Logo UNJCI" />
+        <img src="assets/images/logo.jpg" alt="Logo UNJCI" />
       </div>
 
       <header>
@@ -31,14 +31,14 @@
       </header>
 
       <div *ngIf="registrationComplete" class="registration-success" role="status">
-        <strong>Votre demande a bien été enregistrée.</strong>
-        <span>Connectez-vous avec le login et le mot de passe que vous venez de créer.</span>
+        <strong>Votre formulaire a bien été enregistré.</strong>
+        <span>Connectez-vous avec votre adresse e-mail et le mot de passe que vous venez de créer pour procéder au paiement.</span>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         
         <label>
-          <span>Login <b>*</b></span>
+          <span>Adresse e-mail ou numéro UNJCI <b>*</b></span>
           <div class="input-shell" [class.invalid]="submitted && form.controls.login.invalid">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
@@ -47,7 +47,7 @@
               type="text"
               formControlName="login"
               autocomplete="username"
-              placeholder="Votre identifiant ou e-mail"
+              placeholder="nom@exemple.com ou UJ25-00122"
             />
           </div>
           <small *ngIf="submitted && form.controls.login.hasError('required')">
@@ -87,11 +87,11 @@
             <input type="checkbox" formControlName="rememberMe" />
             <span>Se souvenir de moi</span>
           </label>
-          <a routerLink="/nous-contacter" (click)="$event.preventDefault()">Mot de passe oublié ?</a>
+          <a routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
         </div>
 
         <div *ngIf="authenticationError" class="authentication-error" role="alert">
-          Login ou mot de passe incorrect.
+          {{ authenticationErrorMessage }}
         </div>
 
         <button class="submit-button" type="submit">

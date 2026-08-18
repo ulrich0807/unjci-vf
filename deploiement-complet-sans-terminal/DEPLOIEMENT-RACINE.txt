@@ -1,0 +1,9 @@
+PAQUET COMPLET UNJCI — MISE À JOUR SANS TERMINAL
+
+Ce paquet remplace l'ancien deploy-root pour cette mise à jour.
+
+Avant toute manipulation, lire intégralement :
+DEPLOIEMENT-SANS-TERMINAL.txt
+
+Ne jamais vider public_html. Les fichiers doivent être fusionnés avec ceux du
+serveur en préservant obligatoirement .env et les dossiers storage existants.

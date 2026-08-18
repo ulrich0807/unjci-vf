@@ -1,13 +1,13 @@
 <header class="modern-header" [class.scrolled]="isScrolled">
   <div class="header-container">
-    <!-- Logo (ferme le menu si on clique dessus depuis le mobile) -->
+    <!-- Logo -->
     <a routerLink="/" class="brand-logo" (click)="closeMenu()">
-      <img src="./assets/images/logo.jpg" alt="Logo UNJCI" />
+      <img src="assets/images/logo.jpg" alt="Logo UNJCI" />
     </a>
 
-    <!-- Navigation Principale (S'active via isMenuOpen) -->
-   <!-- Navigation Principale (S'active via isMenuOpen) -->
+    <!-- Navigation Principale -->
     <nav class="main-nav" [class.active]="isMenuOpen">
+      <!-- Accueil (Visible pour tous) -->
       <a
         routerLink="/"
         routerLinkActive="active"
@@ -18,17 +18,26 @@
         Accueil
       </a>
       
-      <!-- Adhésion : visible UNIQUEMENT si déconnecté -->
-      <a 
-        *ngIf="!isLoggedIn" 
-        routerLink="/application" 
-        routerLinkActive="active" 
-        class="nav-link" 
+      <!-- Adhésion (Visible UNIQUEMENT si déconnecté) -->
+      <a
+        *ngIf="!session"
+        routerLink="/guide-adhesion"
+        routerLinkActive="active"
+        class="nav-link"
         (click)="closeMenu()"
       >
         Adhésion
       </a>
-      
+      <a
+        routerLink="/renouvellement"
+        routerLinkActive="active"
+        class="nav-link"
+        (click)="closeMenu()"
+      >
+        Renouvellement
+      </a>
+
+      <!-- Nous contacter (Visible pour tous) -->
       <a
         routerLink="/nous-contacter"
         routerLinkActive="active"
@@ -38,9 +47,9 @@
         Nous contacter
       </a>
       
-      <!-- Ma carte : visible UNIQUEMENT si connecté -->
+      <!-- Ma carte (Visible UNIQUEMENT pour les membres) -->
       <a
-        *ngIf="isLoggedIn"
+        *ngIf="role === 'member'"
         routerLink="/ma-carte"
         routerLinkActive="active"
         class="nav-link"
@@ -48,62 +57,64 @@
       >
         Ma carte
       </a>
+
+      <!-- Scanner une carte (Visible UNIQUEMENT pour Admin et Scanner) -->
+      <a
+        *ngIf="role === 'admin' || role === 'scanner'"
+        routerLink="/scanner"
+        routerLinkActive="active"
+        class="nav-link"
+        (click)="closeMenu()"
+      >
+        Scanner une carte
+      </a>
     </nav>
 
-    <!-- Actions (Connexion / Espace Membre) -->
+    <!-- Actions (Boutons Dynamiques) -->
+    <!-- Actions (Boutons Dynamiques) -->
     <div class="header-actions">
-      <!-- Bouton dynamique : pointe vers /login ou le tableau de bord adéquat -->
-      <a [routerLink]="dashboardLink" class="btn-login" (click)="closeMenu()">
-        <svg
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-          ></path>
+
+      <!-- Bouton VISITEUR : pointe vers login -->
+      <a *ngIf="!session" routerLink="/login" class="btn-login" (click)="closeMenu()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
         </svg>
         mon espace
       </a>
 
+      <!-- Bouton MEMBRE -->
+      <a *ngIf="role === 'member'" routerLink="/espace-membre" class="btn-login" (click)="closeMenu()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        </svg>
+        Espace membre
+      </a>
+
+      <!-- Bouton ADMIN -->
+      <a *ngIf="role === 'admin'" routerLink="/administration" class="btn-login" (click)="closeMenu()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        </svg>
+        Espace admin
+      </a>
+
+      <!-- BOUTON DÉCONNEXION (Icône Uniquement) -->
+      <button *ngIf="session"
+              style="color: #ef4444; background: transparent; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center;"
+              (click)="logout()"
+              title="Déconnexion">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+      </button>
+
       <!-- Bouton Menu Mobile -->
       <button class="mobile-menu-btn" (click)="toggleMenu()" [class.is-open]="isMenuOpen">
-        <!-- Icône Hamburger -->
-        <svg
-          class="icon-menu"
-          fill="none"
-          stroke="#1e293b"
-          viewBox="0 0 24 24"
-          width="32"
-          height="32"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 6h16M4 12h16M4 18h16"
-          ></path>
+        <svg class="icon-menu" fill="none" stroke="#1e293b" viewBox="0 0 24 24" width="32" height="32">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
-
-        <!-- Icône Croix (Cachée par défaut) -->
-        <svg
-          class="icon-close"
-          fill="none"
-          stroke="#1e293b"
-          viewBox="0 0 24 24"
-          width="32"
-          height="32"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          ></path>
+        <svg class="icon-close" fill="none" stroke="#1e293b" viewBox="0 0 24 24" width="32" height="32">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
       </button>
     </div>
@@ -115,5 +126,5 @@
 </main>
 
 <footer class="modern-footer">
-  Prototype UNJCI • Les données sont stockées localement dans le navigateur.
+ © 2026 Union Nationale des Journalistes de Côte d'Ivoire. Tous droits réservés. — Réalisé par Performix iT.
 </footer>

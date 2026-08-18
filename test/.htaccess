@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # L'API Laravel conserve ses propres rÃ¨gles de rÃ©Ã©criture.
+    RewriteRule ^api(?:/|$) - [L]
+
+    # Le code Laravel ne doit jamais Ãªtre accessible directement sur le Web.
+    RewriteRule ^unjci-api(?:/|$) - [F,L]
+
+    # Permet d'ouvrir directement une route Angular, par exemple /test/verification/xxx.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.html [L]
+</IfModule>

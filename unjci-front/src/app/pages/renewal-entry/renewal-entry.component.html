@@ -1,0 +1,67 @@
+<div class="renewal-page page" *ngIf="showChoices">
+  <section class="renewal-hero" aria-labelledby="renewal-title">
+    <span class="eyebrow">Renouvellement UNJCI</span>
+    <h1 id="renewal-title">Renouveler mon adhésion</h1>
+    <p>Choisissez la situation qui vous correspond pour poursuivre votre renouvellement.</p>
+  </section>
+
+  <aside class="guidance" aria-label="Information importante">
+    <span class="guidance-icon" aria-hidden="true">i</span>
+    <div>
+      <strong>Vous êtes déjà adhérent, mais vous n’avez pas encore de compte en ligne&nbsp;?</strong>
+      <p>Commencez par le formulaire d’adhésion. Votre numéro de membre UNJCI permettra de retrouver votre dossier.</p>
+    </div>
+  </aside>
+
+  <section class="choice-grid" aria-label="Choisir mon parcours de renouvellement">
+    <article class="choice-card choice-card-primary">
+      <div class="choice-heading">
+        <span class="choice-number" aria-hidden="true">1</span>
+        <span class="choice-label">Je n’ai pas encore de compte en ligne</span>
+      </div>
+
+      <h2>Faire reconnaître mon ancienne adhésion</h2>
+      <p>
+        Même si vous êtes déjà adhérent à l’UNJCI, remplissez d’abord le formulaire d’adhésion.
+        Dès la première étape, saisissez votre numéro de membre pour retrouver vos informations et créer votre accès.
+      </p>
+
+      <ul>
+        <li>Préparez votre numéro de membre UNJCI.</li>
+        <li>Vérifiez et complétez les informations retrouvées.</li>
+        <li>Créez votre accès, puis connectez-vous pour renouveler.</li>
+      </ul>
+
+      <a routerLink="/application" [queryParams]="{ type: 'renewal' }" class="btn btn-primary choice-action">
+        M’inscrire pour le renouvellement
+      </a>
+    </article>
+
+    <article class="choice-card">
+      <div class="choice-heading">
+        <span class="choice-number choice-number-secondary" aria-hidden="true">2</span>
+        <span class="choice-label">J’ai déjà rempli le formulaire en ligne</span>
+      </div>
+
+      <h2>Continuer depuis mon espace membre</h2>
+      <p>
+        Si votre inscription en ligne est déjà terminée, connectez-vous avec votre adresse e-mail ou
+        votre numéro UNJCI, ainsi que votre mot de passe, pour poursuivre le renouvellement.
+      </p>
+
+      <div class="account-ready">
+        <strong>Votre compte est déjà créé</strong>
+        <span>Vous n’avez pas besoin de remplir une nouvelle demande.</span>
+      </div>
+
+      <a routerLink="/login" class="btn btn-outline choice-action">
+        Me connecter
+      </a>
+    </article>
+  </section>
+
+  <p class="help-link">
+    Vous ne retrouvez pas votre numéro de membre&nbsp;?
+    <a routerLink="/nous-contacter">Contactez l’UNJCI</a>.
+  </p>
+</div>

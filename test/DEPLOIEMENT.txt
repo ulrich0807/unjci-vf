@@ -1,0 +1,23 @@
+PAQUET DE DEPLOIEMENT UNJCI - DOSSIER /test
+
+1. Envoyer tout le contenu de ce dossier dans public_html/test.
+2. Conserver le fichier unjci-api/.env et vérifier les paramètres de base, mail et URL.
+3. Donner les droits d'écriture au serveur PHP sur :
+   - unjci-api/storage
+   - unjci-api/bootstrap/cache
+   - api/storage
+4. Mettre la base à niveau :
+   - avec SSH : php unjci-api/artisan migrate --force
+   - sans SSH : importer d'abord unjci-api/database/member-import-manual.sql
+5. Charger ensuite les anciens adhérents validés avec :
+   unjci-api/database/preloaded-members-import.sql
+6. Consulter avant import le rapport :
+   unjci-api/database/preloaded-members-import-report.csv
+7. Vérifier https://unjci.ci/test puis https://unjci.ci/test/api/health.
+
+Important : /api/login accepte uniquement les requêtes POST envoyées par le
+formulaire de connexion. L'ouverture directe de /api/login dans un navigateur
+retourne donc normalement une erreur HTTP 405.
+
+Le point d'entrée public de Laravel est api/index.php.
+Le dossier unjci-api est protégé par les règles .htaccess.

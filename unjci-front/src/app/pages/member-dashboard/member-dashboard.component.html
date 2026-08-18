@@ -18,9 +18,20 @@
           <span *ngIf="!member.photoDataUrl">{{ member.firstName[0] }}{{ member.lastName[0] }}</span>
         </div>
         <div>
-          <span class="status" [class.active]="member.status === 'ACTIVE'">{{ member.status }}</span>
+          <span class="status" [class.active]="membershipStage === 'approved'">{{ membershipStageLabel }}</span>
           <h2>{{ member.firstName }} {{ member.lastName }}</h2>
-          <p>{{ member.memberNumber }}</p>
+          <p *ngIf="hasMemberNumber; else numberPending">Numéro UNJCI : {{ member.member_number }}</p>
+          <ng-template #numberPending>
+            <p *ngIf="proposedMemberNumber; else noProposedNumber">
+              Numéro déclaré : {{ proposedMemberNumber }} — en attente de vérification
+            </p>
+            <ng-template #noProposedNumber>
+              <p>Numéro UNJCI confirmé ou attribué après validation</p>
+            </ng-template>
+          </ng-template>
+          <p *ngIf="member.membership_expires_at">
+            Abonnement valide jusqu’au {{ member.membership_expires_at | date:'dd/MM/yyyy' }}
+          </p>
         </div>
       </div>
 
@@ -67,46 +78,121 @@
       </form>
     </section>
 
+    <section class="content-card membership-status-card" aria-labelledby="membership-status-title">
+      <div class="section-head">
+        <div>
+          <span class="section-label">SUIVI DE LA DEMANDE</span>
+          <h2 id="membership-status-title">{{ membershipStageLabel }}</h2>
+          <p class="payment-intro">{{ membershipStageDescription }}</p>
+        </div>
+      </div>
+
+      <ol class="membership-steps" *ngIf="membershipStage !== 'rejected'; else rejectedStage">
+        <li
+          *ngFor="let step of membershipSteps; let index = index"
+          [class.current]="isCurrentMembershipStep(step.stage)"
+          [class.completed]="isCompletedMembershipStep(step.stage)"
+        >
+          <span class="step-marker">{{ index + 1 }}</span>
+          <span>{{ step.label }}</span>
+        </li>
+      </ol>
+
+      <ng-template #rejectedStage>
+        <div class="error-message">
+          Votre demande n’a pas été approuvée. Contactez l’UNJCI avant d’effectuer un nouveau paiement.
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="content-card password-card">
+      <div class="section-head">
+        <div>
+          <span class="section-label">SÉCURITÉ</span>
+          <h2>Modifier mon mot de passe</h2>
+        </div>
+      </div>
+      <div *ngIf="passwordSaved" class="success-message">Votre mot de passe a été modifié.</div>
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+        <label class="wide">
+          Mot de passe actuel
+          <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+        </label>
+        <label>
+          Nouveau mot de passe
+          <input type="password" formControlName="newPassword" autocomplete="new-password" />
+          <small>8 caractères minimum</small>
+        </label>
+        <label>
+          Confirmer le nouveau mot de passe
+          <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
+        </label>
+        <div *ngIf="passwordError" class="wide error-message">{{ passwordError }}</div>
+        <div class="form-actions wide">
+          <button type="submit" class="primary-button" [disabled]="changingPassword">
+            {{ changingPassword ? 'Modification...' : 'Modifier le mot de passe' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
     <section id="paiement" class="content-card payment-proof-card">
       <div class="section-head">
         <div>
           <span class="section-label">COTISATION</span>
-          <h2>Justificatif de paiement</h2>
+          <h2>{{ paymentMode === 'renewal' ? 'Renouveler mon adhésion' : 'Payer mes frais d’adhésion' }}</h2>
+          <p class="payment-intro" *ngIf="paymentActionAvailable && paymentMode === 'adhesion'">
+            Effectuez le paiement Wave puis renseignez sa référence. Une fois le paiement confirmé,
+            votre dossier sera automatiquement transmis à l’UNJCI pour validation.
+          </p>
+          <p class="payment-intro" *ngIf="paymentActionAvailable && paymentMode === 'renewal'">
+            Effectuez le paiement Wave puis renseignez sa référence. Après confirmation, votre demande
+            de renouvellement sera examinée par l’UNJCI.
+          </p>
         </div>
-        <button
-          *ngIf="!addingPaymentProof && (!hasPendingPayment)"
-          type="button"
-          class="outline-button"
-          (click)="addingPaymentProof = true"
-        >
-          Ajouter le justificatif de paiement
-        </button>
       </div>
 
       <div *ngIf="paymentSaved" class="success-message">
-        Votre justificatif de paiement a été enregistré et est en cours de validation.
+        Votre paiement a bien été transmis. Sa confirmation est en cours.
       </div>
 
-      <!-- État : Un paiement est en attente de validation -->
-      <div *ngIf="!addingPaymentProof && hasPendingPayment" class="proof-summary">
-        <div class="status-badge pending">Validation en cours par un administrateur</div>
-        <p>Vous avez soumis un justificatif de <strong>{{ expectedAmount }} FCFA</strong>.</p>
+      <div *ngIf="!addingPaymentProof && membershipStage === 'payment_pending'" class="stage-notice pending">
+        <strong>Paiement en cours de confirmation</strong>
+        <p>Votre paiement de {{ expectedAmount | number:'1.0-0' }} FCFA a été transmis. Vous serez informé dès sa confirmation.</p>
       </div>
 
-      <!-- État : Aucun paiement (correspond à ta capture d'écran) -->
-      <div *ngIf="!addingPaymentProof && !hasPendingPayment && history.length === 0" class="proof-missing" style="background-color: #fff9f0; border: 1px solid #fbd38d; padding: 1.5rem; border-radius: 8px;">
-        <strong style="color: #9c4221; font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Aucun justificatif ajouté</strong>
-        <p style="margin-bottom: 1rem;">Votre cotisation s'élève à <strong>{{ expectedAmount }} FCFA</strong>. Réglez ce montant via notre lien sécurisé, puis ajoutez les références ici.</p>
-        
-        <a href="https://pay.wave.com/m/M_ci_1oLobZU1c7N5/c/ci/" target="_blank" class="primary-button" style="display: inline-block; background-color: #1cbed3; margin-bottom: 1rem;">
-          Payer avec Wave
-        </a>
-        
-        <p style="font-size: 0.9rem; color: #666;">Ajoutez le numéro utilisé avec Wave et l'ID reçu après votre transaction via le bouton ci-dessus.</p>
+      <div *ngIf="!addingPaymentProof && membershipStage === 'under_review'" class="stage-notice review">
+        <strong>Dossier en cours de validation</strong>
+        <p>Votre paiement est confirmé. Votre demande est maintenant examinée par l’UNJCI.</p>
       </div>
 
-      <!-- Formulaire d'ajout de justificatif -->
+      <div *ngIf="!addingPaymentProof && paymentActionAvailable" class="payment-options-grid single-option">
+        <article class="payment-option" [class.adhesion-option]="paymentMode === 'adhesion'" [class.renewal-option]="paymentMode === 'renewal'">
+          <div class="option-icon">{{ paymentMode === 'renewal' ? 'R' : 'A' }}</div>
+          <span class="option-label">{{ paymentMode === 'renewal' ? 'RENOUVELLEMENT' : 'ADHÉSION' }}</span>
+          <h3>{{ paymentMode === 'renewal' ? 'Renouveler mon adhésion' : 'Finaliser ma première adhésion' }}</h3>
+          <div class="option-price"><strong>{{ expectedAmount | number:'1.0-0' }}</strong><span>FCFA</span></div>
+          <p *ngIf="paymentMode === 'adhesion'">
+            Ces frais permettent de transmettre votre nouvelle demande à l’UNJCI pour validation.
+          </p>
+          <p *ngIf="paymentMode === 'renewal'">
+            Le numéro éventuellement déclaré dans votre demande sera vérifié manuellement par l’UNJCI avant de devenir officiel.
+          </p>
+          <div class="option-actions">
+            <a href="https://pay.wave.com/m/M_ci_1oLobZU1c7N5/c/ci/" target="_blank" rel="noopener" class="wave-button">Payer avec Wave</a>
+            <button type="button" class="outline-button" (click)="startPayment()">Renseigner le paiement</button>
+          </div>
+        </article>
+      </div>
+
       <form *ngIf="addingPaymentProof" [formGroup]="paymentProofForm" (ngSubmit)="savePaymentProof()">
+        <div class="wide proof-missing">
+          <strong>{{ paymentMode === 'renewal' ? 'Renouvellement de l’adhésion' : 'Frais de première adhésion' }}</strong>
+          <p>Montant à payer : <strong>{{ expectedAmount | number:'1.0-0' }} FCFA</strong></p>
+          <a href="https://pay.wave.com/m/M_ci_1oLobZU1c7N5/c/ci/" target="_blank" rel="noopener" class="primary-button" style="display:inline-block; background-color:#1cbed3;">
+            Payer avec Wave
+          </a>
+        </div>
         <label>
           Numéro utilisé pour le paiement
           <input formControlName="paymentPhone" placeholder="+225 00 00 00 00 00" />
@@ -115,10 +201,11 @@
           ID de la transaction
           <input formControlName="transactionId" placeholder="Ex. CI240731..." />
         </label>
+        <div *ngIf="paymentError" class="wide error-message">{{ paymentError }}</div>
         <div class="form-actions wide">
-          <button type="button" class="cancel-button" (click)="addingPaymentProof = false">Annuler</button>
+          <button type="button" class="cancel-button" (click)="cancelPayment()">Annuler</button>
           <button type="submit" class="primary-button" [disabled]="savingPayment">
-            {{ savingPayment ? 'Enregistrement...' : 'Enregistrer le justificatif' }}
+            {{ savingPayment ? 'Transmission...' : 'Transmettre le paiement' }}
           </button>
         </div>
       </form>
@@ -132,9 +219,10 @@
         </div>
       </div>
       <div class="history-table">
-        <div class="table-head"><span>Date</span><span>Téléphone</span><span>Montant</span><span>Statut</span></div>
+        <div class="table-head"><span>Date</span><span>Type</span><span>Téléphone</span><span>Montant</span><span>Statut</span></div>
         <div *ngFor="let item of history" class="table-row">
           <span>{{ item.created_at | date:'dd/MM/yyyy' }}</span>
+          <span>{{ item.payment_type === 'renewal' ? 'Renouvellement' : 'Adhésion' }}</span>
           <strong>{{ item.payment_phone }}</strong>
           <span>{{ item.amount | number:'1.0-0' }} FCFA</span>
           <span class="status" 

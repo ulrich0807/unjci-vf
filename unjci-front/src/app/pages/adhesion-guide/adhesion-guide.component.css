@@ -1,0 +1,215 @@
+.guide-wrapper {
+  padding-top: 80px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
+}
+
+.guide-hero {
+  text-align: center;
+  padding: 4rem 2rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.modern-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.lead-text {
+  font-size: 1.15rem;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* Vertical Stepper Styles */
+.vertical-steps-section {
+  padding: 2rem 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.vertical-stepper {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-item {
+  display: flex;
+  position: relative;
+  margin-bottom: 2rem;
+  opacity: 0; /* for animation */
+}
+
+.step-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 1.5rem;
+  position: relative;
+}
+
+.step-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #03a94b; /* Modern Blue */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.25rem;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  border: 4px solid #f8fafc;
+}
+
+.step-line {
+  position: absolute;
+  top: 48px;
+  bottom: -2rem; /* Stretch to the next item */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  background: rgba(59, 130, 246, 0.2);
+  z-index: 1;
+}
+
+/* Fix last item line not needed but let's be clean */
+.step-item:last-child .step-line {
+  display: none;
+}
+.step-item:last-child {
+  margin-bottom: 0;
+}
+
+.step-content {
+  flex-grow: 1;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: flex-start;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.step-content:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.step-icon-wrapper {
+  margin-right: 1.5rem;
+  color: #03a94b;
+  background: #eff6ff;
+  padding: 14px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-icon-wrapper svg {
+  width: 32px;
+  height: 32px;
+}
+
+.step-text h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.step-text p {
+  color: #475569;
+  line-height: 1.6;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.cta-section {
+  padding: 4rem 1rem 6rem;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  opacity: 0;
+}
+
+.cta-box {
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+}
+
+.cta-box h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 1rem;
+}
+
+.cta-box p {
+  color: #475569;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.btn-large {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  background-color: #03a94b;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+}
+
+.btn-large:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23);
+}
+
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsiveness */
+@media (max-width: 640px) {
+  .guide-wrapper { padding-top: 60px; }
+  .modern-title { font-size: 2rem; }
+  
+  .step-content {
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+  
+  .step-icon-wrapper {
+    margin-bottom: 1rem;
+  }
+
+  .cta-box { padding: 2rem 1rem; }
+  .btn-large { width: 100%; padding: 1rem; }
+}

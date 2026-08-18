@@ -1,9 +1,43 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { Observable } from 'rxjs';
+import {
+  ManagedPressMedia,
+  PressCompanyRecord,
+  PressMediaService,
+  PressMediaType,
+} from '../../core/press-media.service';
+
+export type LoginAuditStatusFilter = 'all' | 'success' | 'failure';
+
+export interface LoginAuditRecord {
+  id: number;
+  login: string;
+  userId: number | null;
+  userName: string | null;
+  userEmail: string | null;
+  role: string | null;
+  success: boolean;
+  reason: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+interface LoginAuditResponse {
+  data: LoginAuditRecord[];
+  meta: {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+  };
+}
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -16,10 +50,16 @@ export class AdminDashboard implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private http = inject(HttpClient);
+  private pressMediaService = inject(PressMediaService);
+  private cdr = inject(ChangeDetectorRef);
 
   members: any[] = [];
   filteredMembers: any[] = [];
   pendingPayments: any[] = [];
+  memberNumberDrafts: Record<number, string> = {};
+  memberActionErrors: Record<number, string> = {};
+  memberActionInProgress: Record<number, boolean> = {};
+  adminDataError = '';
 
   allPayments: any[] = [];
   filteredPayments: any[] = [];
@@ -32,8 +72,48 @@ export class AdminDashboard implements OnInit {
   statusFilter = '';
   scannerVisible = false;
 
+  pressCompanies: PressCompanyRecord[] = [];
+  catalogSearch = '';
+  catalogLoading = false;
+  catalogAction = '';
+  catalogError = '';
+  catalogSuccess = '';
+  catalogPage = 1;
+  readonly catalogPageSize = 10;
+  readonly mediaTypes: readonly PressMediaType[] = ['Écrit', 'Numérique'];
+  readonly expandedCompanyIds = new Set<number>();
+
+  loginAudits: LoginAuditRecord[] = [];
+  loginAuditSearch = '';
+  loginAuditStatus: LoginAuditStatusFilter = 'all';
+  loginAuditsLoading = false;
+  loginAuditsError = '';
+  loginAuditPage = 1;
+  loginAuditLastPage = 1;
+  readonly loginAuditPerPage = 25;
+  loginAuditTotal = 0;
+  private loginAuditRequestId = 0;
+
+  newCompanyName = '';
+  newCompanyActive = true;
+  newMediaCompanyId: number | null = null;
+  newMediaName = '';
+  newMediaType: PressMediaType = 'Numérique';
+  newMediaActive = true;
+
+  editingCompanyId: number | null = null;
+  editCompanyName = '';
+  editCompanyActive = true;
+  editingMediaId: number | null = null;
+  editMediaCompanyId: number | null = null;
+  editMediaName = '';
+  editMediaType: PressMediaType = 'Numérique';
+  editMediaActive = true;
+
   ngOnInit(): void {
     this.loadAdminData();
+    this.loadPressCompanies();
+    this.loadLoginAudits();
   }
 
   // Charge tous les membres et les paiements en attente depuis Laravel
@@ -45,19 +125,34 @@ loadAdminData(): void {
     }
 
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session.token}` });
+    this.adminDataError = '';
 
-    this.http.get('http://127.0.0.1:8000/api/admin/dashboard', { headers }).subscribe({
+    this.http.get(`${environment.apiUrl}/admin/dashboard`, { headers }).subscribe({
       next: (data: any) => {
-        this.members = data.members;
-        this.allPayments = data.payments; 
+        this.members = data.members || [];
+        this.allPayments = data.payments || [];
+
+        for (const member of this.members) {
+          if (this.memberNumberDrafts[member.id] === undefined) {
+            this.memberNumberDrafts[member.id] = String(
+              member.current_member_number || member.member_number || '',
+            ).trim();
+          }
+        }
         
         // On conserve la liste des "En attente" pour la section d'alerte en haut
         this.pendingPayments = this.allPayments.filter(p => p.status === 'pending'); 
         
         this.filterMembers();
         this.filterPayments(); // On lance le filtre des paiements
+        this.cdr.markForCheck();
       },
-      error: (err) => console.error('Erreur de chargement des données admin', err)
+      error: (err) => {
+        console.error('Erreur de chargement des données admin', err);
+        this.adminDataError = err.error?.message
+          || 'Impossible de charger les adhérents et les paiements.';
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -67,7 +162,8 @@ loadAdminData(): void {
     this.filteredMembers = this.members.filter(m => {
       const matchSearch = m.first_name.toLowerCase().includes(term) || 
                           m.last_name.toLowerCase().includes(term) || 
-                          (m.member_number && m.member_number.toLowerCase().includes(term));
+                          (m.member_number && m.member_number.toLowerCase().includes(term)) ||
+                          (m.current_member_number && m.current_member_number.toLowerCase().includes(term));
       const matchStatus = this.statusFilter ? m.status === this.statusFilter : true;
       return matchSearch && matchStatus;
     });
@@ -78,18 +174,87 @@ loadAdminData(): void {
     return this.members.filter(m => m.status === status).length;
   }
 
+  countUnderReview(): number {
+    return this.members.filter(m => m.membership_stage === 'under_review').length;
+  }
+
+  memberStageLabel(member: any): string {
+    const labels: Record<string, string> = {
+      awaiting_payment: 'Paiement requis',
+      payment_pending: 'Paiement à confirmer',
+      under_review: 'Dossier à valider',
+      approved: 'Adhésion validée',
+      rejected: 'Demande rejetée',
+    };
+
+    return labels[member.membership_stage] || member.status;
+  }
+
+  requiresMemberNumberVerification(member: any): boolean {
+    return String(member?.request_type || '').toLowerCase() === 'renewal'
+      && !member?.member_number;
+  }
+
+  onVerifiedMemberNumberInput(member: any, rawValue: string): void {
+    this.memberNumberDrafts[member.id] = String(rawValue || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9-]/g, '')
+      .slice(0, 10);
+    delete this.memberActionErrors[member.id];
+  }
+
+  approvalActionLabel(member: any): string {
+    if (this.requiresMemberNumberVerification(member)) {
+      return 'Approuver et confirmer le numéro';
+    }
+
+    return member?.request_type === 'renewal'
+      ? 'Approuver le renouvellement'
+      : 'Approuver et attribuer le numéro';
+  }
+
   // Mettre à jour le statut d'un membre (Appel API)
   setStatus(member: any, newStatus: string): void {
     const session = this.auth.getSession();
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+    const payload: { status: string; verifiedMemberNumber?: string } = { status: newStatus };
+    delete this.memberActionErrors[member.id];
 
-    this.http.put(`http://127.0.0.1:8000/api/admin/members/${member.id}/status`, { status: newStatus }, { headers })
+    if (newStatus === 'approved' && this.requiresMemberNumberVerification(member)) {
+      const verifiedMemberNumber = String(this.memberNumberDrafts[member.id] || '').trim();
+      if (!verifiedMemberNumber) {
+        this.memberActionErrors[member.id] = 'Le numéro UNJCI vérifié est requis pour approuver ce renouvellement.';
+        return;
+      }
+      if (!/^UJ\d{2}-\d{5}$/.test(verifiedMemberNumber)) {
+        this.memberActionErrors[member.id] = 'Format attendu : UJ25-00122.';
+        return;
+      }
+
+      payload.verifiedMemberNumber = verifiedMemberNumber;
+    }
+
+    this.memberActionInProgress[member.id] = true;
+
+    this.http.put(`${environment.apiUrl}/admin/members/${member.id}/status`, payload, { headers })
       .subscribe({
-        next: () => {
-          member.status = newStatus;
+        next: (response: any) => {
+          delete this.memberActionInProgress[member.id];
+          Object.assign(member, response.member);
+          this.memberNumberDrafts[member.id] = String(
+            member.current_member_number || member.member_number || '',
+          ).trim();
           this.filterMembers();
+          this.cdr.markForCheck();
         },
-        error: (err) => console.error('Erreur lors de la mise à jour du statut', err)
+        error: (err) => {
+          console.error('Erreur lors de la mise à jour du statut', err);
+          delete this.memberActionInProgress[member.id];
+          const validationErrors = err.error?.errors as Record<string, string[]> | undefined;
+          this.memberActionErrors[member.id] = validationErrors
+            ? Object.values(validationErrors).flat().join(' ')
+            : (err.error?.message || 'Le statut de cet adhérent n’a pas pu être mis à jour.');
+        }
       });
   }
 
@@ -100,7 +265,7 @@ loadAdminData(): void {
     const session = this.auth.getSession();
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
 
-    this.http.put(`http://127.0.0.1:8000/api/admin/payments/${paymentId}/validate`, { status }, { headers })
+    this.http.put(`${environment.apiUrl}/admin/payments/${paymentId}/validate`, { status }, { headers })
       .subscribe({
         next: () => {
           // On recharge les données pour mettre à jour les tableaux
@@ -111,7 +276,7 @@ loadAdminData(): void {
   }
 
   getPhotoUrl(path: string): string {
-    return `http://127.0.0.1:8000/storage/${path}`;
+    return `${environment.storageUrl}/${path}`;
   }
 
   openScanner(): void {
@@ -129,13 +294,382 @@ loadAdminData(): void {
       const matchStatus = this.paymentStatusFilter ? p.status === this.paymentStatusFilter : true;
       
       // Filtre sur le type (Adhésion ou Renouvellement, qui se trouve dans la table member)
-      const reqType = p.member?.request_type ? p.member.request_type.toLowerCase() : '';
-      const matchType = this.paymentTypeFilter ? reqType.includes(this.paymentTypeFilter) : true;
+      const paymentType = p.payment_type || 'adhesion';
+      const matchType = this.paymentTypeFilter ? paymentType === this.paymentTypeFilter : true;
 
       return matchStatus && matchType;
     });
 
     // Recalcul du montant total affiché à l'écran
     this.totalPaymentsAmount = this.filteredPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  }
+
+  loadLoginAudits(page = this.loginAuditPage): void {
+    const session = this.auth.getSession();
+    if (!session || session.role !== 'admin') {
+      this.logout();
+      return;
+    }
+
+    const requestedPage = Math.max(1, page);
+    const requestId = ++this.loginAuditRequestId;
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session.token}` });
+    const params = new HttpParams()
+      .set('search', this.loginAuditSearch.trim())
+      .set('status', this.loginAuditStatus)
+      .set('page', String(requestedPage))
+      .set('perPage', String(this.loginAuditPerPage));
+
+    this.loginAuditsLoading = true;
+    this.loginAuditsError = '';
+
+    this.http.get<LoginAuditResponse>(`${environment.apiUrl}/admin/login-audits`, { headers, params }).subscribe({
+      next: response => {
+        if (requestId !== this.loginAuditRequestId) return;
+
+        this.loginAudits = response.data || [];
+        this.loginAuditPage = response.meta?.currentPage || requestedPage;
+        this.loginAuditLastPage = Math.max(1, response.meta?.lastPage || 1);
+        this.loginAuditTotal = response.meta?.total || 0;
+        this.loginAuditsLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: error => {
+        if (requestId !== this.loginAuditRequestId) return;
+
+        this.loginAuditsLoading = false;
+        this.loginAuditsError = error?.error?.message
+          || 'Impossible de charger l’historique des connexions. Vérifiez votre connexion puis réessayez.';
+      },
+    });
+  }
+
+  applyLoginAuditFilters(): void {
+    this.loginAuditPage = 1;
+    this.loadLoginAudits(1);
+  }
+
+  goToLoginAuditPage(page: number): void {
+    if (this.loginAuditsLoading || page < 1 || page > this.loginAuditLastPage || page === this.loginAuditPage) return;
+    this.loadLoginAudits(page);
+  }
+
+  get loginAuditFirstItem(): number {
+    return this.loginAuditTotal ? ((this.loginAuditPage - 1) * this.loginAuditPerPage) + 1 : 0;
+  }
+
+  get loginAuditLastItem(): number {
+    return Math.min(this.loginAuditPage * this.loginAuditPerPage, this.loginAuditTotal);
+  }
+
+  browserLabel(userAgent: string | null): string {
+    if (!userAgent) return 'Non renseigné';
+
+    const browser = userAgent.includes('Edg/') ? 'Microsoft Edge'
+      : userAgent.includes('OPR/') ? 'Opera'
+      : userAgent.includes('Firefox/') ? 'Firefox'
+      : userAgent.includes('Chrome/') ? 'Chrome'
+      : userAgent.includes('Safari/') ? 'Safari'
+      : 'Navigateur inconnu';
+    const platform = /Android/i.test(userAgent) ? 'Android'
+      : /iPhone|iPad/i.test(userAgent) ? 'iOS'
+      : /Windows/i.test(userAgent) ? 'Windows'
+      : /Macintosh|Mac OS/i.test(userAgent) ? 'macOS'
+      : /Linux/i.test(userAgent) ? 'Linux'
+      : '';
+
+    return platform ? `${browser} · ${platform}` : browser;
+  }
+
+  loginAuditReasonLabel(reason: string | null): string {
+    if (!reason) return '';
+
+    const labels: Record<string, string> = {
+      invalid_credentials: 'Identifiant ou mot de passe incorrect',
+      email_verification_required: 'Adresse e-mail non vérifiée',
+      account_disabled: 'Compte désactivé',
+      account_not_found: 'Compte introuvable',
+      too_many_attempts: 'Trop de tentatives de connexion',
+    };
+
+    return labels[reason] || reason;
+  }
+
+  get filteredPressCompanies(): PressCompanyRecord[] {
+    const query = this.normalizeCatalogSearch(this.catalogSearch);
+    if (!query) return this.pressCompanies;
+
+    return this.pressCompanies.filter(company =>
+      this.normalizeCatalogSearch(company.name).includes(query)
+      || company.media.some(media => this.normalizeCatalogSearch(media.name).includes(query))
+    );
+  }
+
+  get paginatedPressCompanies(): PressCompanyRecord[] {
+    const firstIndex = (this.catalogPage - 1) * this.catalogPageSize;
+    return this.filteredPressCompanies.slice(firstIndex, firstIndex + this.catalogPageSize);
+  }
+
+  get catalogTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredPressCompanies.length / this.catalogPageSize));
+  }
+
+  get catalogFirstItem(): number {
+    return this.filteredPressCompanies.length ? ((this.catalogPage - 1) * this.catalogPageSize) + 1 : 0;
+  }
+
+  get catalogLastItem(): number {
+    return Math.min(this.catalogPage * this.catalogPageSize, this.filteredPressCompanies.length);
+  }
+
+  onCatalogSearchChange(value: string): void {
+    this.catalogSearch = value;
+    this.catalogPage = 1;
+  }
+
+  goToCatalogPage(page: number): void {
+    if (page < 1 || page > this.catalogTotalPages || page === this.catalogPage) return;
+    this.catalogPage = page;
+  }
+
+  trackPressCompany(_index: number, company: PressCompanyRecord): number {
+    return company.id;
+  }
+
+  loadPressCompanies(preserveSuccess = false): void {
+    this.catalogPage = 1;
+    this.catalogLoading = true;
+    this.catalogError = '';
+    if (!preserveSuccess) this.catalogSuccess = '';
+
+    this.pressMediaService.getAdminCompanies().subscribe({
+      next: companies => {
+        this.pressCompanies = companies;
+        this.catalogLoading = false;
+        this.catalogAction = '';
+
+        if (this.newMediaCompanyId === null || !companies.some(company => company.id === this.newMediaCompanyId)) {
+          this.newMediaCompanyId = companies[0]?.id ?? null;
+        }
+        this.cdr.markForCheck();
+      },
+      error: error => {
+        this.catalogLoading = false;
+        this.catalogAction = '';
+        this.catalogError = this.catalogErrorMessage(error, 'Impossible de charger les entreprises et les médias.');
+      },
+    });
+  }
+
+  createPressCompany(): void {
+    const name = this.newCompanyName.trim();
+    if (!name || this.catalogAction) return;
+
+    this.runCatalogAction(
+      'create-company',
+      this.pressMediaService.createCompany({ name, isActive: this.newCompanyActive }),
+      'Entreprise ajoutée avec succès.',
+      () => {
+        this.newCompanyName = '';
+        this.newCompanyActive = true;
+      },
+    );
+  }
+
+  startCompanyEdit(company: PressCompanyRecord): void {
+    this.editingCompanyId = company.id;
+    this.editCompanyName = company.name;
+    this.editCompanyActive = company.isActive;
+    this.catalogError = '';
+    this.catalogSuccess = '';
+  }
+
+  cancelCompanyEdit(): void {
+    this.editingCompanyId = null;
+    this.editCompanyName = '';
+  }
+
+  saveCompany(company: PressCompanyRecord): void {
+    const name = this.editCompanyName.trim();
+    if (!name || this.catalogAction) return;
+
+    this.runCatalogAction(
+      `company-${company.id}`,
+      this.pressMediaService.updateCompany(company.id, { name, isActive: this.editCompanyActive }),
+      'Entreprise modifiée avec succès.',
+      () => this.cancelCompanyEdit(),
+    );
+  }
+
+  toggleCompanyActive(company: PressCompanyRecord): void {
+    if (this.catalogAction) return;
+
+    this.runCatalogAction(
+      `company-${company.id}`,
+      this.pressMediaService.updateCompany(company.id, {
+        name: company.name,
+        isActive: !company.isActive,
+      }),
+      company.isActive
+        ? 'Entreprise désactivée. Ses médias ne sont plus proposés aux adhérents.'
+        : 'Entreprise activée avec succès.',
+    );
+  }
+
+  deleteCompany(company: PressCompanyRecord): void {
+    if (this.catalogAction || !confirm(`Supprimer l'entreprise « ${company.name} » ?`)) return;
+
+    this.runCatalogAction(
+      `company-${company.id}`,
+      this.pressMediaService.deleteCompany(company.id),
+      'Entreprise supprimée avec succès.',
+      () => {
+        this.expandedCompanyIds.delete(company.id);
+        if (this.editingCompanyId === company.id) this.cancelCompanyEdit();
+      },
+    );
+  }
+
+  createPressMedia(): void {
+    const companyId = this.newMediaCompanyId;
+    const name = this.newMediaName.trim();
+    if (companyId === null || !name || this.catalogAction) return;
+
+    this.runCatalogAction(
+      `create-media-${companyId}`,
+      this.pressMediaService.createMedia(companyId, {
+        name,
+        type: this.newMediaType,
+        isActive: this.newMediaActive,
+      }),
+      'Média ajouté avec succès.',
+      () => {
+        this.newMediaName = '';
+        this.newMediaType = 'Numérique';
+        this.newMediaActive = true;
+        this.expandedCompanyIds.add(companyId);
+      },
+    );
+  }
+
+  startMediaEdit(company: PressCompanyRecord, media: ManagedPressMedia): void {
+    this.editingMediaId = media.id;
+    this.editMediaCompanyId = company.id;
+    this.editMediaName = media.name;
+    this.editMediaType = media.type;
+    this.editMediaActive = media.isActive;
+    this.catalogError = '';
+    this.catalogSuccess = '';
+  }
+
+  cancelMediaEdit(): void {
+    this.editingMediaId = null;
+    this.editMediaCompanyId = null;
+    this.editMediaName = '';
+  }
+
+  saveMedia(media: ManagedPressMedia): void {
+    const companyId = this.editMediaCompanyId;
+    const name = this.editMediaName.trim();
+    if (companyId === null || !name || this.catalogAction) return;
+
+    this.runCatalogAction(
+      `media-${media.id}`,
+      this.pressMediaService.updateMedia(media.id, {
+        pressCompanyId: companyId,
+        name,
+        type: this.editMediaType,
+        isActive: this.editMediaActive,
+      }),
+      'Média modifié avec succès.',
+      () => {
+        this.expandedCompanyIds.add(companyId);
+        this.cancelMediaEdit();
+      },
+    );
+  }
+
+  toggleMediaActive(company: PressCompanyRecord, media: ManagedPressMedia): void {
+    if (this.catalogAction) return;
+
+    this.runCatalogAction(
+      `media-${media.id}`,
+      this.pressMediaService.updateMedia(media.id, {
+        pressCompanyId: company.id,
+        name: media.name,
+        type: media.type,
+        isActive: !media.isActive,
+      }),
+      media.isActive ? 'Média désactivé.' : 'Média activé avec succès.',
+    );
+  }
+
+  deleteMedia(media: ManagedPressMedia): void {
+    if (this.catalogAction || !confirm(`Supprimer le média « ${media.name} » ?`)) return;
+
+    this.runCatalogAction(
+      `media-${media.id}`,
+      this.pressMediaService.deleteMedia(media.id),
+      'Média supprimé avec succès.',
+      () => {
+        if (this.editingMediaId === media.id) this.cancelMediaEdit();
+      },
+    );
+  }
+
+  toggleCompanyDetails(companyId: number): void {
+    if (this.expandedCompanyIds.has(companyId)) {
+      this.expandedCompanyIds.delete(companyId);
+      return;
+    }
+    this.expandedCompanyIds.add(companyId);
+  }
+
+  companyDetailsVisible(companyId: number): boolean {
+    return !!this.catalogSearch.trim() || this.expandedCompanyIds.has(companyId);
+  }
+
+  private runCatalogAction(
+    action: string,
+    request: Observable<unknown>,
+    successMessage: string,
+    afterSuccess?: () => void,
+  ): void {
+    this.catalogAction = action;
+    this.catalogError = '';
+    this.catalogSuccess = '';
+
+    request.subscribe({
+      next: () => {
+        this.catalogSuccess = successMessage;
+        afterSuccess?.();
+        this.loadPressCompanies(true);
+      },
+      error: error => {
+        this.catalogAction = '';
+        this.catalogError = this.catalogErrorMessage(error, 'L\'opération n\'a pas pu être effectuée.');
+      },
+    });
+  }
+
+  private catalogErrorMessage(error: any, fallback: string): string {
+    if (error?.status === 409) {
+      return 'Cette entreprise contient encore des médias. Supprimez-les ou réaffectez-les avant de supprimer l\'entreprise.';
+    }
+
+    const validationErrors = error?.error?.errors as Record<string, string[]> | undefined;
+    if (validationErrors) {
+      return Object.values(validationErrors).flat().join(' ');
+    }
+
+    return error?.error?.message || fallback;
+  }
+
+  private normalizeCatalogSearch(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
   }
 }

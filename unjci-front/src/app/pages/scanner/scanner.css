@@ -1,0 +1,120 @@
+.scanner-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  background-color: #f3f4f6;
+  padding: 1rem;
+}
+
+.scanner-card {
+  background: white;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  padding: 2rem;
+  text-align: center;
+}
+
+.icon-pulse {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: pulse 2s infinite;
+}
+
+.instruction-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  color: #475569;
+}
+
+.btn-logout {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-logout:hover {
+  background: #ef4444;
+  color: white;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(0.95); }
+}
+
+.scanner-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  background-color: #f3f4f6;
+  padding: 1rem;
+}
+
+.scanner-card {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  padding: 2rem;
+  text-align: center;
+}
+
+.subtitle {
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+.camera-container {
+  border: 4px solid #10b981;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  background: #000;
+  min-height: 250px;
+  position: relative;
+}
+
+/* On force la vidéo du scanner à s'adapter au conteneur */
+::ng-deep zxing-scanner video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+.error-msg {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.btn-logout {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  padding: 0.8rem 2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: bold;
+}
+
+.btn-logout:hover {
+  background: #ef4444;
+  color: white;
+}
