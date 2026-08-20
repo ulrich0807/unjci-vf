@@ -351,6 +351,7 @@ loadAdminData(): void {
 
   getPhotoUrl(path: string): string {
     return `${environment.storageUrl}/${path}`;
+  }
 
   openScanner(): void {
     this.scannerVisible = true;
