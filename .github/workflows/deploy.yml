@@ -17,7 +17,7 @@ jobs:
       - name: ⚙️ Setup Node.js (Frontend)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: 📦 Installer et Compiler le Frontend (Angular)
         run: |
@@ -47,7 +47,7 @@ jobs:
           
           # Créer le dossier frontend et copier les fichiers compilés
           mkdir -p deployment-package/unjci-front
-          cp -R unjci-front/dist/unjci-membership/browser/* deployment-package/unjci-front/
+          cp -R unjci-front/dist/unjci-membership/* deployment-package/unjci-front/
 
       - name: 🚀 Déploiement via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
