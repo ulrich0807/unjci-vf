@@ -45,9 +45,8 @@ jobs:
           rm -rf deployment-package/unjci-api/tests
           rm -rf deployment-package/unjci-api/node_modules || true
           
-          # Créer le dossier frontend et copier les fichiers compilés
-          mkdir -p deployment-package/unjci-front
-          cp -R unjci-front/dist/unjci-membership/* deployment-package/unjci-front/
+          # Copier les fichiers compilés du frontend à la racine du package
+          cp -R unjci-front/dist/unjci-membership/* deployment-package/
 
       - name: 🚀 Déploiement via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -56,4 +55,4 @@ jobs:
           username: ${{ secrets.SECRET_2 }}
           password: ${{ secrets.SECRET_3 }}
           local-dir: ./deployment-package/
-          server-dir: ./
+          server-dir: public_html/
