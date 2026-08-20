@@ -40,10 +40,10 @@ jobs:
           mkdir deployment-package
           
           # Copier le backend préparé
-          cp -R unjci-api/ deployment-package/unjci-api/
+          cp -R unjci-api/ deployment-package/api/
           # Nettoyer les fichiers de développement du backend
-          rm -rf deployment-package/unjci-api/tests
-          rm -rf deployment-package/unjci-api/node_modules || true
+          rm -rf deployment-package/api/tests
+          rm -rf deployment-package/api/node_modules || true
           
           # Copier les fichiers compilés du frontend à la racine du package
           cp -R unjci-front/dist/unjci-membership/* deployment-package/
