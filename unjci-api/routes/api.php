@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
     Route::get('/admin/login-audits', [AdminController::class, 'loginAudits']);
     Route::put('/admin/members/{id}/status', [AdminController::class, 'updateMemberStatus']);
+    Route::put('/admin/members/{id}/details', [AdminController::class, 'updateMemberDetails']);
     Route::put('/admin/payments/{id}/validate', [AdminController::class, 'validatePayment']);
     Route::get('/admin/press-companies', [AdminPressMediaController::class, 'index']);
     Route::post('/admin/press-companies', [AdminPressMediaController::class, 'storeCompany']);

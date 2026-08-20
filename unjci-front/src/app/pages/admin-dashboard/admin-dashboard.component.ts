@@ -61,6 +61,12 @@ export class AdminDashboard implements OnInit {
   memberActionInProgress: Record<number, boolean> = {};
   adminDataError = '';
 
+  selectedMember: any = null;
+  isEditingMember = false;
+  editMemberData: any = {};
+  editMemberError = '';
+  editMemberSuccess = '';
+
   allPayments: any[] = [];
   filteredPayments: any[] = [];
   
@@ -257,6 +263,74 @@ loadAdminData(): void {
         }
       });
   }
+  // --- NOUVEAU : GESTION DES DÉTAILS D'UN ADHÉRENT ---
+  openMemberDetails(member: any): void {
+    this.selectedMember = member;
+    this.isEditingMember = false;
+    this.editMemberError = '';
+    this.editMemberSuccess = '';
+    // Pré-remplir les données d'édition
+    this.editMemberData = {
+      lastName: member.last_name,
+      firstName: member.first_name,
+      alias: member.alias || '',
+      birthDate: member.birth_date,
+      birthPlace: member.birth_place,
+      phone: member.phone,
+      postalAddress: member.postal_address || '',
+      personalEmail: member.personal_email,
+      professionalStatus: member.professional_status,
+      employers: member.employers,
+      mediaName: member.media_name,
+      mediaType: member.media_type,
+      functionTitle: member.function_title,
+      pressCardNumber: member.press_card_number,
+      pressCardExpiry: member.press_card_expiry,
+      requestType: member.request_type,
+      currentMemberNumber: member.current_member_number
+    };
+  }
+
+  closeMemberDetails(): void {
+    this.selectedMember = null;
+    this.isEditingMember = false;
+  }
+
+  toggleEditMember(): void {
+    this.isEditingMember = !this.isEditingMember;
+    this.editMemberSuccess = '';
+    this.editMemberError = '';
+  }
+
+  saveMemberDetails(): void {
+    if (!this.selectedMember) return;
+    
+    this.editMemberError = '';
+    this.editMemberSuccess = '';
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+
+    this.http.put<{success: boolean, member: any, message: string}>(`${environment.apiUrl}/admin/members/${this.selectedMember.id}/details`, this.editMemberData, { headers })
+      .subscribe({
+        next: (response) => {
+          this.editMemberSuccess = response.message || 'Modifications enregistrées.';
+          this.isEditingMember = false;
+          // Mettre à jour la liste locale
+          Object.assign(this.selectedMember, response.member);
+          this.filterMembers();
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error('Erreur lors de la sauvegarde', err);
+          const validationErrors = err.error?.errors as Record<string, string[]> | undefined;
+          this.editMemberError = validationErrors
+            ? Object.values(validationErrors).flat().join(' ')
+            : (err.error?.message || 'Impossible de sauvegarder les modifications.');
+          this.cdr.markForCheck();
+        }
+      });
+  }
+  // --- FIN GESTION DES DÉTAILS ---
 
   // Valider ou rejeter un paiement Wave (Appel API)
   validatePayment(paymentId: number, status: 'approved' | 'rejected'): void {
@@ -277,7 +351,6 @@ loadAdminData(): void {
 
   getPhotoUrl(path: string): string {
     return `${environment.storageUrl}/${path}`;
-  }
 
   openScanner(): void {
     this.scannerVisible = true;

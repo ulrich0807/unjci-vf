@@ -342,7 +342,7 @@
       <table>
         <thead><tr><th>Adhérent</th><th>N° membre</th><th>Demande</th><th>Statut</th><th>Actions</th></tr></thead>
         <tbody>
-          <tr *ngFor="let member of filteredMembers">
+          <tr *ngFor="let member of filteredMembers" class="clickable-row" (click)="openMemberDetails(member)">
             <td>
               <div class="member-cell">
                 <div class="avatar">
@@ -380,10 +380,10 @@
                     [attr.aria-label]="'Numéro UNJCI vérifié pour ' + member.first_name + ' ' + member.last_name"
                   />
                 </label>
-                <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="setStatus(member, 'approved')">
+                <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'approved')">
                   {{ memberActionInProgress[member.id] ? 'Enregistrement…' : approvalActionLabel(member) }}
                 </button>
-                <button class="terminate" [disabled]="memberActionInProgress[member.id]" (click)="setStatus(member, 'rejected')">Rejeter</button>
+                <button class="terminate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'rejected')">Rejeter</button>
                 <small class="error-message" *ngIf="memberActionErrors[member.id]" role="alert">
                   {{ memberActionErrors[member.id] }}
                 </small>
@@ -472,5 +472,108 @@
   </section>
 
   <ng-container *ngTemplateOutlet="catalogSection"></ng-container>
+
+  <!-- MODALE DES DÉTAILS DU MEMBRE -->
+  <div class="modal-overlay" *ngIf="selectedMember" (click)="closeMemberDetails()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Détails de l'adhérent</h2>
+        <button class="close-button" (click)="closeMemberDetails()">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- MODE LECTURE -->
+        <div class="details-grid" *ngIf="!isEditingMember">
+          <div class="detail-group">
+            <small>Nom complet</small>
+            <strong>{{ selectedMember.last_name | uppercase }} {{ selectedMember.first_name }}</strong>
+          </div>
+          <div class="detail-group">
+            <small>Email</small>
+            <strong>{{ selectedMember.personal_email }}</strong>
+          </div>
+          <div class="detail-group">
+            <small>Téléphone</small>
+            <strong>{{ selectedMember.phone }}</strong>
+          </div>
+          <div class="detail-group">
+            <small>Entreprise / Média</small>
+            <strong>{{ selectedMember.employers }} ({{ selectedMember.media_name }})</strong>
+          </div>
+          <div class="detail-group">
+            <small>Fonction</small>
+            <strong>{{ selectedMember.function_title }}</strong>
+          </div>
+          <div class="detail-group">
+            <small>Numéro CIJP</small>
+            <strong>{{ selectedMember.press_card_number }}</strong>
+          </div>
+        </div>
+
+        <!-- MODE ÉDITION -->
+        <form class="edit-form" *ngIf="isEditingMember" (ngSubmit)="saveMemberDetails()">
+          <div class="form-row">
+            <label>Nom <input type="text" name="lastName" [(ngModel)]="editMemberData.lastName" required></label>
+            <label>Prénom <input type="text" name="firstName" [(ngModel)]="editMemberData.firstName" required></label>
+          </div>
+          <div class="form-row">
+            <label>Pseudonyme <input type="text" name="alias" [(ngModel)]="editMemberData.alias"></label>
+            <label>Adresse Postale <input type="text" name="postalAddress" [(ngModel)]="editMemberData.postalAddress"></label>
+          </div>
+          <div class="form-row">
+            <label>Email <input type="email" name="personalEmail" [(ngModel)]="editMemberData.personalEmail" required></label>
+            <label>Téléphone <input type="text" name="phone" [(ngModel)]="editMemberData.phone" required></label>
+          </div>
+          <div class="form-row">
+            <label>Date de naissance <input type="date" name="birthDate" [(ngModel)]="editMemberData.birthDate" required></label>
+            <label>Lieu de naissance <input type="text" name="birthPlace" [(ngModel)]="editMemberData.birthPlace" required></label>
+          </div>
+          <div class="form-row">
+            <label>Statut Professionnel <input type="text" name="professionalStatus" [(ngModel)]="editMemberData.professionalStatus" required></label>
+            <label>Entreprise <input type="text" name="employers" [(ngModel)]="editMemberData.employers" required></label>
+          </div>
+          <div class="form-row">
+            <label>Média <input type="text" name="mediaName" [(ngModel)]="editMemberData.mediaName" required></label>
+            <label>Type de demande 
+              <select name="requestType" [(ngModel)]="editMemberData.requestType" required>
+                <option value="adhesion">Adhésion</option>
+                <option value="renewal">Renouvellement</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Fonction <input type="text" name="functionTitle" [(ngModel)]="editMemberData.functionTitle" required></label>
+            <label>Type de média 
+              <select name="mediaType" [(ngModel)]="editMemberData.mediaType" required>
+                <option value="Écrit">Écrit</option>
+                <option value="Numérique">Numérique</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Numéro CIJP <input type="text" name="pressCardNumber" [(ngModel)]="editMemberData.pressCardNumber" required></label>
+            <label>Expiration CIJP <input type="date" name="pressCardExpiry" [(ngModel)]="editMemberData.pressCardExpiry" required></label>
+          </div>
+          <div class="form-row">
+            <label>N° Adhérent Proposé (UJXX-XXXXX) <input type="text" name="currentMemberNumber" [(ngModel)]="editMemberData.currentMemberNumber"></label>
+          </div>
+
+          <div class="edit-messages">
+            <p class="error-message" *ngIf="editMemberError">{{ editMemberError }}</p>
+            <p class="success-message" *ngIf="editMemberSuccess">{{ editMemberSuccess }}</p>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="secondary" (click)="toggleEditMember()">Annuler</button>
+            <button type="submit" class="primary">Sauvegarder</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer" *ngIf="!isEditingMember">
+        <button class="primary" (click)="toggleEditMember()">Modifier les informations</button>
+      </div>
+    </div>
+  </div>
 
 </div>

@@ -218,6 +218,71 @@ class AdminController extends Controller
         return response()->json(['success' => true, 'member' => $member->fresh()]);
     }
 
+    public function updateMemberDetails(Request $request, $id)
+    {
+        $this->checkAdmin($request);
+        $member = Member::with('user')->findOrFail($id);
+
+        $validated = $request->validate([
+            'lastName' => 'required|string|max:100',
+            'firstName' => 'required|string|max:100',
+            'alias' => 'nullable|string|max:100',
+            'birthDate' => 'required|date_format:Y-m-d',
+            'birthPlace' => 'required|string|max:100',
+            'phone' => 'required|string|max:40',
+            'postalAddress' => 'nullable|string|max:255',
+            'personalEmail' => 'required|email|max:255',
+            'professionalStatus' => 'required|string|max:255',
+            'employers' => 'required|string|max:255',
+            'mediaName' => 'required|string|max:255',
+            'mediaType' => 'required|in:Écrit,Numérique',
+            'functionTitle' => 'required|string|max:255',
+            'pressCardNumber' => 'required|string',
+            'pressCardExpiry' => 'required|date',
+            'requestType' => 'required|in:adhesion,renewal',
+            'currentMemberNumber' => 'nullable|string|regex:/^UJ\d{2}-\d{5}$/',
+        ]);
+
+        $member->update([
+            'last_name' => $validated['lastName'],
+            'first_name' => $validated['firstName'],
+            'alias' => $validated['alias'],
+            'birth_date' => $validated['birthDate'],
+            'birth_place' => $validated['birthPlace'],
+            'phone' => $validated['phone'],
+            'postal_address' => $validated['postalAddress'],
+            'personal_email' => $validated['personalEmail'],
+            'professional_status' => $validated['professionalStatus'],
+            'employers' => $validated['employers'],
+            'media_name' => $validated['mediaName'],
+            'media_type' => $validated['mediaType'],
+            'function_title' => $validated['functionTitle'],
+            'press_card_number' => $validated['pressCardNumber'],
+            'press_card_expiry' => $validated['pressCardExpiry'],
+            'request_type' => $validated['requestType'],
+            'current_member_number' => $validated['currentMemberNumber'],
+        ]);
+
+        if ($member->user) {
+            // Update email and name
+            $member->user->update([
+                'name' => $validated['firstName'] . ' ' . $validated['lastName'],
+                'email' => $validated['personalEmail'],
+            ]);
+            
+            // Si le currentMemberNumber est modifié, mettre à jour le login utilisateur si possible
+            if ($validated['currentMemberNumber'] && $member->user->login !== $validated['currentMemberNumber']) {
+                $member->user->update(['login' => $validated['currentMemberNumber']]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'member' => $member->fresh(),
+            'message' => 'Les informations ont été mises à jour avec succès.'
+        ]);
+    }
+
     public function validatePayment(Request $request, $id)
     {
         $this->checkAdmin($request);
