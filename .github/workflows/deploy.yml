@@ -39,11 +39,17 @@ jobs:
         run: |
           mkdir deployment-package
           
-          # Copier le backend préparé
-          cp -R unjci-api/ deployment-package/api/
+          # Copier le backend préparé (cœur Laravel)
+          cp -R unjci-api/ deployment-package/unjci-api/
           # Nettoyer les fichiers de développement du backend
-          rm -rf deployment-package/api/tests
-          rm -rf deployment-package/api/node_modules || true
+          rm -rf deployment-package/unjci-api/tests
+          rm -rf deployment-package/unjci-api/node_modules || true
+          
+          # Créer le dossier public api/ et modifier index.php pour pointer vers unjci-api/
+          mkdir -p deployment-package/api
+          cp -R unjci-api/public/* deployment-package/api/
+          cp unjci-api/public/.htaccess deployment-package/api/ || true
+          sed -i "s|__DIR__.'/../|__DIR__.'/../unjci-api/|g" deployment-package/api/index.php
           
           # Copier les fichiers compilés du frontend à la racine du package
           cp -R unjci-front/dist/unjci-membership/browser/* deployment-package/
