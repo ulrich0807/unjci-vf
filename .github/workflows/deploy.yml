@@ -22,7 +22,7 @@ jobs:
       - name: 📦 Installer et Compiler le Frontend (Angular)
         run: |
           cd unjci-front
-          npm install
+          npm install --legacy-peer-deps
           npx ng build --configuration production
 
       - name: ⚙️ Setup PHP (Backend)
