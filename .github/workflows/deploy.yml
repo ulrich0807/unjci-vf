@@ -46,7 +46,7 @@ jobs:
           rm -rf deployment-package/api/node_modules || true
           
           # Copier les fichiers compilés du frontend à la racine du package
-          cp -R unjci-front/dist/unjci-membership/* deployment-package/
+          cp -R unjci-front/dist/unjci-membership/browser/* deployment-package/
 
       - name: 🚀 Déploiement via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
