@@ -1,0 +1,59 @@
+name: Deploy to cPanel (FTP)
+
+on:
+  push:
+    branches:
+      - main
+      - master # In case the main branch is named master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Obtenir le code source
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js (Frontend)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Installer et Compiler le Frontend (Angular)
+        run: |
+          cd unjci-front
+          npm install
+          npx ng build --configuration production
+
+      - name: ⚙️ Setup PHP (Backend)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: 📦 Installer les dépendances du Backend (Laravel)
+        run: |
+          cd unjci-api
+          composer install --no-dev --optimize-autoloader
+
+      - name: 📁 Préparer le dossier de déploiement
+        run: |
+          mkdir deployment-package
+          
+          # Copier le backend préparé
+          cp -R unjci-api/ deployment-package/unjci-api/
+          # Nettoyer les fichiers de développement du backend
+          rm -rf deployment-package/unjci-api/tests
+          rm -rf deployment-package/unjci-api/node_modules || true
+          
+          # Créer le dossier frontend et copier les fichiers compilés
+          mkdir -p deployment-package/unjci-front
+          cp -R unjci-front/dist/unjci-membership/browser/* deployment-package/unjci-front/
+
+      - name: 🚀 Déploiement via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deployment-package/
+          server-dir: ./
