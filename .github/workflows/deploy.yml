@@ -52,8 +52,8 @@ jobs:
       - name: 🚀 Déploiement via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ secrets.SECRET_1 }}
+          username: ${{ secrets.SECRET_2 }}
+          password: ${{ secrets.SECRET_3 }}
           local-dir: ./deployment-package/
           server-dir: ./
