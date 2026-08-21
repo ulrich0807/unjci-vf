@@ -559,7 +559,7 @@ export class ApplicationComponent implements OnInit {
             .join(' ');
         } else {
           this.submissionError = error.error?.message
-            || 'La demande n’a pas pu être enregistrée sur le serveur.';
+            || 'L\'enregistrement a échoué. Veuillez vérifier votre connexion internet et la taille de vos fichiers, puis réessayez.';
         }
         
         setTimeout(() => {

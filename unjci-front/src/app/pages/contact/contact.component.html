@@ -44,6 +44,10 @@
         <p>Les champs marqués d’un astérisque sont obligatoires.</p>
       </div>
 
+      <div class="error-message" *ngIf="error" role="alert" style="color: red; margin-bottom: 1rem; font-weight: bold;">
+        {{ error }}
+      </div>
+
       <div class="form-grid">
         <label>
           <p>Nom et prénoms <span style="color: red;">*</span></p>

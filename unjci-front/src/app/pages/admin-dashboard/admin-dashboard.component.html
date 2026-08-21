@@ -19,106 +19,7 @@
 
   <div class="error-message" *ngIf="adminDataError" role="alert">{{ adminDataError }}</div>
 
-  <section class="members-card login-audit-card" aria-labelledby="login-audit-title">
-    <div class="card-heading login-audit-heading">
-      <div>
-        <span>SÉCURITÉ</span>
-        <h2 id="login-audit-title">Historique des connexions</h2>
-        <p>Consultez les tentatives réussies et échouées enregistrées sur la plateforme.</p>
-      </div>
 
-      <form class="login-audit-filters" (ngSubmit)="applyLoginAuditFilters()">
-        <input
-          type="search"
-          name="loginAuditSearch"
-          [(ngModel)]="loginAuditSearch"
-          placeholder="Identifiant, nom ou e-mail..."
-          aria-label="Rechercher dans l'historique des connexions"
-        />
-        <select name="loginAuditStatus" [(ngModel)]="loginAuditStatus" (change)="applyLoginAuditFilters()" aria-label="Filtrer par résultat">
-          <option value="all">Toutes les tentatives</option>
-          <option value="success">Réussies</option>
-          <option value="failure">Échouées</option>
-        </select>
-        <button type="submit" class="login-audit-button primary" [disabled]="loginAuditsLoading">Filtrer</button>
-        <button type="button" class="login-audit-button secondary" (click)="loadLoginAudits()" [disabled]="loginAuditsLoading">
-          Recharger
-        </button>
-      </form>
-    </div>
-
-    <div class="login-audit-message error-message" *ngIf="loginAuditsError" role="alert">
-      <span>{{ loginAuditsError }}</span>
-      <button type="button" (click)="loadLoginAudits()" [disabled]="loginAuditsLoading">Réessayer</button>
-    </div>
-
-    <div class="login-audit-loading" *ngIf="loginAuditsLoading" role="status">Chargement de l’historique des connexions…</div>
-
-    <div class="table-wrap login-audit-table-wrap" *ngIf="loginAudits.length" [attr.aria-busy]="loginAuditsLoading">
-      <table class="login-audit-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Identifiant</th>
-            <th>Compte</th>
-            <th>Résultat</th>
-            <th>Adresse IP</th>
-            <th>Navigateur</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let audit of loginAudits">
-            <td class="login-audit-date">{{ audit.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-            <td><code>{{ audit.login || 'Non renseigné' }}</code></td>
-            <td>
-              <div class="login-audit-account" *ngIf="audit.userId; else unknownLoginAccount">
-                <strong>{{ audit.userName || 'Compte sans nom' }}</strong>
-                <small>{{ audit.userEmail || 'E-mail non renseigné' }}</small>
-                <small *ngIf="audit.role">Rôle : {{ audit.role }}</small>
-              </div>
-              <ng-template #unknownLoginAccount><span class="login-audit-muted">Compte non reconnu</span></ng-template>
-            </td>
-            <td>
-              <span class="login-audit-result" [class.success]="audit.success" [class.failure]="!audit.success">
-                {{ audit.success ? 'Réussie' : 'Échouée' }}
-              </span>
-              <small class="login-audit-reason" *ngIf="!audit.success && audit.reason">{{ loginAuditReasonLabel(audit.reason) }}</small>
-            </td>
-            <td><code>{{ audit.ipAddress || 'Non renseignée' }}</code></td>
-            <td>
-              <span class="login-audit-browser" [title]="audit.userAgent || ''">{{ browserLabel(audit.userAgent) }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="empty login-audit-empty" *ngIf="!loginAuditsLoading && !loginAuditsError && !loginAudits.length">
-      <h3>Aucune connexion trouvée</h3>
-      <p>Modifiez les filtres ou attendez de nouvelles tentatives de connexion.</p>
-    </div>
-
-    <div class="login-audit-pagination" *ngIf="loginAuditTotal > 0">
-      <span>{{ loginAuditFirstItem }}–{{ loginAuditLastItem }} sur {{ loginAuditTotal }}</span>
-      <div>
-        <button
-          type="button"
-          class="login-audit-button secondary"
-          (click)="goToLoginAuditPage(loginAuditPage - 1)"
-          [disabled]="loginAuditsLoading || loginAuditPage <= 1"
-          aria-label="Page précédente"
-        >Précédent</button>
-        <strong>Page {{ loginAuditPage }} sur {{ loginAuditLastPage }}</strong>
-        <button
-          type="button"
-          class="login-audit-button secondary"
-          (click)="goToLoginAuditPage(loginAuditPage + 1)"
-          [disabled]="loginAuditsLoading || loginAuditPage >= loginAuditLastPage"
-          aria-label="Page suivante"
-        >Suivant</button>
-      </div>
-    </div>
-  </section>
 
   <ng-template #catalogSection>
   <section class="members-card catalog-card">
@@ -342,7 +243,7 @@
       <table>
         <thead><tr><th>Adhérent</th><th>N° membre</th><th>Demande</th><th>Statut</th><th>Actions</th></tr></thead>
         <tbody>
-          <tr *ngFor="let member of filteredMembers" class="clickable-row" (click)="openMemberDetails(member)">
+          <tr *ngFor="let member of paginatedMembers" class="clickable-row" (click)="openMemberDetails(member)">
             <td>
               <div class="member-cell">
                 <div class="avatar">
@@ -394,6 +295,13 @@
         </tbody>
       </table>
     </div>
+    <div class="login-audit-pagination" *ngIf="filteredMembers.length" style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <span>Page {{ memberPage }} sur {{ memberLastPage }}</span>
+      <div>
+        <button class="login-audit-button secondary" (click)="goToMemberPage(memberPage - 1)" [disabled]="memberPage <= 1">Précédent</button>
+        <button class="login-audit-button secondary" (click)="goToMemberPage(memberPage + 1)" [disabled]="memberPage >= memberLastPage">Suivant</button>
+      </div>
+    </div>
     <ng-template #empty><div class="empty"><h3>Aucun adhérent trouvé</h3><p>Modifiez les filtres ou attendez de nouvelles demandes.</p></div></ng-template>
   </section>
 
@@ -442,7 +350,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of filteredPayments">
+          <tr *ngFor="let p of paginatedPayments">
             <td>{{ p.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
               <strong>{{ p.member?.last_name | uppercase }} {{ p.member?.first_name }}</strong>
@@ -461,6 +369,13 @@
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="login-audit-pagination" *ngIf="filteredPayments.length" style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <span>Page {{ paymentPage }} sur {{ paymentLastPage }}</span>
+      <div>
+        <button class="login-audit-button secondary" (click)="goToPaymentPage(paymentPage - 1)" [disabled]="paymentPage <= 1">Précédent</button>
+        <button class="login-audit-button secondary" (click)="goToPaymentPage(paymentPage + 1)" [disabled]="paymentPage >= paymentLastPage">Suivant</button>
+      </div>
     </div>
     
     <ng-template #emptyPayments>
@@ -575,5 +490,108 @@
       </div>
     </div>
   </div>
+
+  <!-- NOUVELLE SECTION : CONTACTS -->
+  <section class="members-card" style="margin: 24px 0;">
+    <div class="card-heading">
+      <div>
+        <span>MESSAGERIE</span>
+        <h2>Demandes de contact</h2>
+        <p>Messages envoyés depuis le formulaire de contact.</p>
+      </div>
+      <div class="filters">
+        <button type="button" class="login-audit-button secondary" (click)="loadContacts()">Actualiser</button>
+      </div>
+    </div>
+    <div class="login-audit-loading" *ngIf="contactsLoading">Chargement...</div>
+    <div class="table-wrap" *ngIf="contacts.length">
+      <table>
+        <thead><tr><th>Date</th><th>Nom</th><th>Email / Tel</th><th>Sujet</th><th>Message</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let msg of contacts">
+            <td>{{ msg.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><strong>{{ msg.full_name }}</strong></td>
+            <td>{{ msg.email }}<br><small>{{ msg.phone }}</small></td>
+            <td><strong>{{ msg.subject }}</strong></td>
+            <td style="max-width: 300px; white-space: normal;">{{ msg.message }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="empty" *ngIf="!contactsLoading && !contacts.length">
+      <h3>Aucun message de contact</h3>
+    </div>
+    <div class="login-audit-pagination" *ngIf="contacts.length > 0" style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <span>Page {{ contactPage }} sur {{ contactLastPage }}</span>
+      <div>
+        <button class="login-audit-button secondary" (click)="goToContactPage(contactPage - 1)" [disabled]="contactsLoading || contactPage <= 1">Précédent</button>
+        <button class="login-audit-button secondary" (click)="goToContactPage(contactPage + 1)" [disabled]="contactsLoading || contactPage >= contactLastPage">Suivant</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORIQUE DES CONNEXIONS DEPLACE EN BAS -->
+  <section class="members-card login-audit-card" aria-labelledby="login-audit-title">
+    <div class="card-heading login-audit-heading">
+      <div>
+        <span>SÉCURITÉ</span>
+        <h2 id="login-audit-title">Historique des connexions et erreurs</h2>
+        <p>Consultez les tentatives réussies et échouées enregistrées sur la plateforme.</p>
+      </div>
+
+      <form class="login-audit-filters" (ngSubmit)="applyLoginAuditFilters()">
+        <input type="search" name="loginAuditSearch" [(ngModel)]="loginAuditSearch" placeholder="Identifiant, nom ou e-mail..."/>
+        <select name="loginAuditStatus" [(ngModel)]="loginAuditStatus" (change)="applyLoginAuditFilters()">
+          <option value="all">Toutes les tentatives</option>
+          <option value="success">Réussies</option>
+          <option value="failure">Échouées (Erreurs)</option>
+        </select>
+        <button type="submit" class="login-audit-button primary" [disabled]="loginAuditsLoading">Filtrer</button>
+        <button type="button" class="login-audit-button secondary" (click)="loadLoginAudits()" [disabled]="loginAuditsLoading">Recharger</button>
+      </form>
+    </div>
+    <div class="login-audit-message error-message" *ngIf="loginAuditsError" role="alert">
+      <span>{{ loginAuditsError }}</span><button type="button" (click)="loadLoginAudits()" [disabled]="loginAuditsLoading">Réessayer</button>
+    </div>
+    <div class="login-audit-loading" *ngIf="loginAuditsLoading" role="status">Chargement de l’historique des connexions…</div>
+    <div class="table-wrap login-audit-table-wrap" *ngIf="loginAudits.length" [attr.aria-busy]="loginAuditsLoading">
+      <table class="login-audit-table">
+        <thead>
+          <tr><th>Date</th><th>Identifiant</th><th>Compte</th><th>Résultat</th><th>Adresse IP</th><th>Navigateur</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let audit of loginAudits">
+            <td class="login-audit-date">{{ audit.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><code>{{ audit.login || 'Non renseigné' }}</code></td>
+            <td>
+              <div class="login-audit-account" *ngIf="audit.userId; else unknownLoginAccount">
+                <strong>{{ audit.userName || 'Compte sans nom' }}</strong>
+                <small>{{ audit.userEmail || 'E-mail non renseigné' }}</small>
+                <small *ngIf="audit.role">Rôle : {{ audit.role }}</small>
+              </div>
+              <ng-template #unknownLoginAccount><span class="login-audit-muted">Compte non reconnu</span></ng-template>
+            </td>
+            <td>
+              <span class="login-audit-result" [class.success]="audit.success" [class.failure]="!audit.success">{{ audit.success ? 'Réussie' : 'Échouée' }}</span>
+              <small class="login-audit-reason" *ngIf="!audit.success && audit.reason">{{ loginAuditReasonLabel(audit.reason) }}</small>
+            </td>
+            <td><code>{{ audit.ipAddress || 'Non renseignée' }}</code></td>
+            <td><span class="login-audit-browser" [title]="audit.userAgent || ''">{{ browserLabel(audit.userAgent) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="empty login-audit-empty" *ngIf="!loginAuditsLoading && !loginAuditsError && !loginAudits.length">
+      <h3>Aucune connexion trouvée</h3>
+    </div>
+    <div class="login-audit-pagination" *ngIf="loginAuditTotal > 0" style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <span>{{ loginAuditFirstItem }}–{{ loginAuditLastItem }} sur {{ loginAuditTotal }}</span>
+      <div>
+        <button type="button" class="login-audit-button secondary" (click)="goToLoginAuditPage(loginAuditPage - 1)" [disabled]="loginAuditsLoading || loginAuditPage <= 1">Précédent</button>
+        <strong>Page {{ loginAuditPage }} sur {{ loginAuditLastPage }}</strong>
+        <button type="button" class="login-audit-button secondary" (click)="goToLoginAuditPage(loginAuditPage + 1)" [disabled]="loginAuditsLoading || loginAuditPage >= loginAuditLastPage">Suivant</button>
+      </div>
+    </div>
+  </section>
 
 </div>

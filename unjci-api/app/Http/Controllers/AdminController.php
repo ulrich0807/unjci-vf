@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\ApplicationUnderReviewMail;
 use App\Mail\MembershipApprovedMail;
+use App\Mail\MemberUpdatedMail;
 use App\Models\LoginAudit;
 use App\Models\Member;
 use App\Models\Payment;
@@ -275,6 +276,8 @@ class AdminController extends Controller
                 $member->user->update(['login' => $validated['currentMemberNumber']]);
             }
         }
+
+        $this->sendMailSafely($member->fresh(), new MemberUpdatedMail($member->fresh(), $validated));
 
         return response()->json([
             'success' => true,

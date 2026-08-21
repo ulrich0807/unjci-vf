@@ -96,9 +96,21 @@ export class AdminDashboard implements OnInit {
   loginAuditsError = '';
   loginAuditPage = 1;
   loginAuditLastPage = 1;
-  readonly loginAuditPerPage = 25;
+  readonly loginAuditPerPage = 10;
   loginAuditTotal = 0;
   private loginAuditRequestId = 0;
+
+  memberPage = 1;
+  readonly memberPageSize = 10;
+
+  paymentPage = 1;
+  readonly paymentPageSize = 10;
+
+  contacts: any[] = [];
+  contactPage = 1;
+  readonly contactPageSize = 10;
+  contactTotal = 0;
+  contactsLoading = false;
 
   newCompanyName = '';
   newCompanyActive = true;
@@ -120,6 +132,7 @@ export class AdminDashboard implements OnInit {
     this.loadAdminData();
     this.loadPressCompanies();
     this.loadLoginAudits();
+    this.loadContacts();
   }
 
   // Charge tous les membres et les paiements en attente depuis Laravel
@@ -173,6 +186,22 @@ loadAdminData(): void {
       const matchStatus = this.statusFilter ? m.status === this.statusFilter : true;
       return matchSearch && matchStatus;
     });
+    this.memberPage = 1;
+  }
+
+  get paginatedMembers(): any[] {
+    const startIndex = (this.memberPage - 1) * this.memberPageSize;
+    return this.filteredMembers.slice(startIndex, startIndex + this.memberPageSize);
+  }
+
+  get memberLastPage(): number {
+    return Math.max(1, Math.ceil(this.filteredMembers.length / this.memberPageSize));
+  }
+
+  goToMemberPage(page: number): void {
+    if (page >= 1 && page <= this.memberLastPage) {
+      this.memberPage = page;
+    }
   }
 
   // Compteur pour les métriques du haut
@@ -364,18 +393,64 @@ loadAdminData(): void {
 
   filterPayments(): void {
     this.filteredPayments = this.allPayments.filter(p => {
-      // Filtre sur le statut (pending, approved, rejected)
+      const matchType = this.paymentTypeFilter ? p.payment_type === this.paymentTypeFilter : true;
       const matchStatus = this.paymentStatusFilter ? p.status === this.paymentStatusFilter : true;
-      
-      // Filtre sur le type (Adhésion ou Renouvellement, qui se trouve dans la table member)
-      const paymentType = p.payment_type || 'adhesion';
-      const matchType = this.paymentTypeFilter ? paymentType === this.paymentTypeFilter : true;
-
-      return matchStatus && matchType;
+      return matchType && matchStatus;
     });
+    
+    // Calculer le montant total filtré (seulement les approuvés ?)
+    // Ou le total de tout ce qui est affiché. Ici on fait la somme de tous les éléments filtrés
+    this.totalPaymentsAmount = this.filteredPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    this.paymentPage = 1;
+  }
 
-    // Recalcul du montant total affiché à l'écran
-    this.totalPaymentsAmount = this.filteredPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  get paginatedPayments(): any[] {
+    const startIndex = (this.paymentPage - 1) * this.paymentPageSize;
+    return this.filteredPayments.slice(startIndex, startIndex + this.paymentPageSize);
+  }
+
+  get paymentLastPage(): number {
+    return Math.max(1, Math.ceil(this.filteredPayments.length / this.paymentPageSize));
+  }
+
+  goToPaymentPage(page: number): void {
+    if (page >= 1 && page <= this.paymentLastPage) {
+      this.paymentPage = page;
+    }
+  }
+
+  loadContacts(page = 1): void {
+    const session = this.auth.getSession();
+    if (!session || session.role !== 'admin') return;
+
+    this.contactsLoading = true;
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session.token}` });
+    
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('perPage', this.contactPageSize.toString());
+
+    this.http.get<any>(`${environment.apiUrl}/admin/contacts`, { headers, params }).subscribe({
+      next: (res) => {
+        this.contacts = res.data;
+        this.contactPage = res.current_page;
+        this.contactTotal = res.total;
+        this.contactsLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.contactsLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  get contactLastPage(): number {
+    return Math.max(1, Math.ceil(this.contactTotal / this.contactPageSize));
+  }
+  
+  goToContactPage(page: number): void {
+    this.loadContacts(page);
   }
 
   loadLoginAudits(page = this.loginAuditPage): void {

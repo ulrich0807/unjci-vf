@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminPressMediaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MemberController; // <-- N'oublie pas l'import !
 use App\Http\Controllers\PressMediaController;
+use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,6 +18,7 @@ Route::get('/health', function () {
 });
 
 Route::get('/press-media', [PressMediaController::class, 'index']);
+Route::post('/contact', [ContactController::class, 'store']);
 
 Route::get('/members/by-card/{cardNumber}', [MemberController::class, 'findByCardNumber']);
 Route::post('/members/apply', [MemberController::class, 'store']);
@@ -56,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/press-companies/{company}/media', [AdminPressMediaController::class, 'storeMedia']);
     Route::put('/admin/press-media/{media}', [AdminPressMediaController::class, 'updateMedia']);
     Route::delete('/admin/press-media/{media}', [AdminPressMediaController::class, 'destroyMedia']);
+    Route::get('/admin/contacts', [ContactController::class, 'index']);
     Route::get('/verify-card/{token}', [AdminController::class, 'verifyCard']);
 
 });
