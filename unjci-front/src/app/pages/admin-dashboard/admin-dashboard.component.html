@@ -493,25 +493,37 @@
         
         <div *ngIf="!isEditingMember" class="detail-group documents-group" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0; padding-bottom: 24px; border-bottom: 1px solid #e2e8f0;">
           <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 16px;">Documents fournis</small>
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
             
-            <a *ngIf="selectedMember.photo_file_path" [href]="getPhotoUrl(selectedMember.photo_file_path)" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; color: #1e293b; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              Photo d'identité
-            </a>
+            <!-- Photo d'identité -->
+            <div *ngIf="selectedMember.photo_file_path" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.photo_file_path, 'Photo d\'identité')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
+              <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
+                <img *ngIf="!isPdf(selectedMember.photo_file_path)" [src]="getPhotoUrl(selectedMember.photo_file_path)" style="width: 100%; height: 100%; object-fit: cover;">
+                <svg *ngIf="isPdf(selectedMember.photo_file_path)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Photo d'identité</span>
+            </div>
             
-            <a *ngIf="selectedMember.press_card_file_path" [href]="getPhotoUrl(selectedMember.press_card_file_path)" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; color: #1e293b; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-              Carte CIJP
-            </a>
+            <!-- Carte CIJP (Recto) -->
+            <div *ngIf="selectedMember.press_card_recto" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.press_card_recto, 'Carte CIJP (Recto)')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
+              <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
+                <img *ngIf="!isPdf(selectedMember.press_card_recto)" [src]="getPhotoUrl(selectedMember.press_card_recto)" style="width: 100%; height: 100%; object-fit: cover;">
+                <svg *ngIf="isPdf(selectedMember.press_card_recto)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Carte CIJP (Recto)</span>
+            </div>
             
-            <a *ngIf="selectedMember.cv_file_path" [href]="getPhotoUrl(selectedMember.cv_file_path)" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; color: #1e293b; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              Curriculum Vitae
-            </a>
+            <!-- Carte CIJP (Verso) -->
+            <div *ngIf="selectedMember.press_card_verso" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.press_card_verso, 'Carte CIJP (Verso)')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
+              <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
+                <img *ngIf="!isPdf(selectedMember.press_card_verso)" [src]="getPhotoUrl(selectedMember.press_card_verso)" style="width: 100%; height: 100%; object-fit: cover;">
+                <svg *ngIf="isPdf(selectedMember.press_card_verso)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Carte CIJP (Verso)</span>
+            </div>
 
             <!-- Si le membre n'a fourni aucun document -->
-            <span *ngIf="!selectedMember.photo_file_path && !selectedMember.press_card_file_path && !selectedMember.cv_file_path" style="color: #64748b; font-style: italic; font-size: 0.9rem;">
+            <span *ngIf="!selectedMember.photo_file_path && !selectedMember.press_card_recto && !selectedMember.press_card_verso" style="color: #64748b; font-style: italic; font-size: 0.9rem;">
               Aucun document téléversé.
             </span>
           </div>
@@ -688,4 +700,25 @@
     </div>
   </section>
 
+</div>
+
+<!-- LIGHTBOX POUR LES DOCUMENTS -->
+<div class="modal-overlay" *ngIf="previewDocumentUrl" (click)="closeDocumentPreview()" style="z-index: 9999; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+  <div style="width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h3 style="color: white; margin: 0; font-weight: 500; font-size: 1.25rem;">{{ previewDocumentTitle }}</h3>
+    <button (click)="closeDocumentPreview()" style="background: none; border: none; color: white; font-size: 2rem; cursor: pointer; padding: 0 10px; line-height: 1;">&times;</button>
+  </div>
+  
+  <div class="document-container" (click)="$event.stopPropagation()" style="width: 100%; max-width: 900px; height: 80vh; background: #1e293b; border-radius: 12px; overflow: hidden; display: flex; justify-content: center; align-items: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+    <!-- Si c'est un PDF (on utilise un iframe/embed) -->
+    <iframe *ngIf="isPdf(previewDocumentUrl)" 
+            [src]="previewDocumentUrl | safeUrl" 
+            style="width: 100%; height: 100%; border: none;">
+    </iframe>
+    
+    <!-- Si c'est une image -->
+    <img *ngIf="!isPdf(previewDocumentUrl)" 
+         [src]="previewDocumentUrl" 
+         style="max-width: 100%; max-height: 100%; object-fit: contain;">
+  </div>
 </div>

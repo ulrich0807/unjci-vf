@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, Pipe, PipeTransform } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -39,10 +40,22 @@ interface LoginAuditResponse {
   };
 }
 
+@Pipe({
+  name: 'safeUrl',
+  standalone: true
+})
+export class SafeUrlPipe implements PipeTransform {
+  constructor(private sanitizer: DomSanitizer) {}
+  transform(url: string): SafeResourceUrl {
+    if (!url) return '';
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+}
+
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SafeUrlPipe],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css'
 })
@@ -52,6 +65,7 @@ export class AdminDashboard implements OnInit {
   private http = inject(HttpClient);
   private pressMediaService = inject(PressMediaService);
   private cdr = inject(ChangeDetectorRef);
+  private sanitizer = inject(DomSanitizer);
 
   members: any[] = [];
   filteredMembers: any[] = [];
@@ -248,7 +262,26 @@ loadAdminData(): void {
 
     return member?.request_type === 'renewal'
       ? 'Approuver le renouvellement'
-      : 'Approuver et attribuer le numéro';
+      : 'Approuver l\'adhésion';
+  }
+  
+  // Ouvre le popup de prévisualisation
+  openDocumentPreview(path: string, title: string): void {
+    if (!path) return;
+    this.previewDocumentUrl = this.getPhotoUrl(path);
+    this.previewDocumentTitle = title;
+  }
+
+  // Ferme le popup de prévisualisation
+  closeDocumentPreview(): void {
+    this.previewDocumentUrl = null;
+    this.previewDocumentTitle = '';
+  }
+  
+  // Détecte si le fichier est un PDF (basé sur l'extension)
+  isPdf(path: string): boolean {
+    if (!path) return false;
+    return path.toLowerCase().endsWith('.pdf');
   }
 
   // Mettre à jour le statut d'un membre (Appel API)
