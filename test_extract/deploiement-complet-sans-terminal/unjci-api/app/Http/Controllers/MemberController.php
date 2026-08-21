@@ -553,7 +553,7 @@ class MemberController extends Controller
 
         if ($expectedPaymentType === 'adhesion' && $member->application_submitted_at) {
             return response()->json([
-                'message' => 'Votre paiement est déjà confirmé et votre demande est en cours de validation.',
+                'message' => 'Votre paiement est déjà confirmé et votre demande est en cours de traitement.',
             ], 422);
         }
 

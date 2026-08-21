@@ -18,7 +18,7 @@ class ApplicationUnderReviewMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Votre demande est en cours de validation - UNJCI',
+            subject: 'Votre demande est en cours de traitement - UNJCI',
         );
     }
 

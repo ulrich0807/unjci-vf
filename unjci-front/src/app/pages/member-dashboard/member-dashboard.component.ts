@@ -19,7 +19,7 @@ const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; descriptio
     description: 'Votre paiement a été transmis. Sa confirmation est en cours.',
   },
   under_review: {
-    label: 'Dossier en cours de validation',
+    label: 'Dossier en cours de traitement',
     description: 'Votre paiement est confirmé et votre demande est examinée par l’UNJCI.',
   },
   approved: {

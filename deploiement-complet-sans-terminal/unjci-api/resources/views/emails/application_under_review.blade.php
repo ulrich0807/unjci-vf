@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demande en cours de validation</title>
+    <title>Demande en cours de traitement</title>
 </head>
 <body style="margin: 0; padding: 24px; background-color: #f3f7f5; color: #20372d; font-family: Arial, sans-serif;">
     <div style="max-width: 640px; margin: 0 auto; padding: 32px; background-color: #ffffff; border: 1px solid #dce8e2; border-radius: 16px;">
-        <h1 style="margin-top: 0; color: #075a43; font-size: 24px;">Votre demande est en cours de validation</h1>
+        <h1 style="margin-top: 0; color: #075a43; font-size: 24px;">Votre demande est en cours de traitement</h1>
 
         <p>Bonjour <strong>{{ $member->first_name }} {{ $member->last_name }}</strong>,</p>
 
