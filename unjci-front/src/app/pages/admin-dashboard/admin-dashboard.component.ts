@@ -145,6 +145,9 @@ export class AdminDashboard implements OnInit {
   editMediaType: PressMediaType = 'Numérique';
   editMediaActive = true;
 
+  previewDocumentUrl: string | null = null;
+  previewDocumentTitle: string = '';
+
   ngOnInit(): void {
     this.loadAdminData();
     this.loadPressCompanies();
