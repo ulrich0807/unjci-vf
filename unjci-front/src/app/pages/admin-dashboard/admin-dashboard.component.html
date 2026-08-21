@@ -123,11 +123,11 @@
             <span class="status" [class.active]="company.isActive" [class.pending]="!company.isActive" style="margin-right: 8px;">
               {{ company.isActive ? 'Active' : 'Inactivée' }}
             </span>
-            <button class="catalog-button secondary outline" (click)="startEditingCompany(company, $event)">Modifier</button>
-            <button class="catalog-button warning" (click)="toggleCompanyStatus(company, $event)" style="background: #fef3c7; color: #b45309; border: none; font-weight: 500;">
+            <button class="catalog-button secondary outline" (click)="startCompanyEdit(company)">Modifier</button>
+            <button class="catalog-button warning" (click)="toggleCompanyActive(company)" style="background: #fef3c7; color: #b45309; border: none; font-weight: 500;">
               {{ company.isActive ? 'Désactiver' : 'Activer' }}
             </button>
-            <button class="catalog-button danger" (click)="deleteCompany(company, $event)" style="background: #fee2e2; color: #b91c1c; border: none; font-weight: 500;">Supprimer</button>
+            <button class="catalog-button danger" (click)="deleteCompany(company)" style="background: #fee2e2; color: #b91c1c; border: none; font-weight: 500;">Supprimer</button>
           </div>
         </div>
 
@@ -142,8 +142,8 @@
               Entreprise active
             </label>
             <div style="display: flex; gap: 8px;">
-              <button class="catalog-button secondary outline" (click)="cancelEditingCompany()">Annuler</button>
-              <button class="catalog-button primary" (click)="saveCompany()" style="background: #0f766e; color: white;">Enregistrer</button>
+              <button class="catalog-button secondary outline" (click)="cancelCompanyEdit()">Annuler</button>
+              <button class="catalog-button primary" (click)="saveCompany(company)" style="background: #0f766e; color: white;">Enregistrer</button>
             </div>
           </div>
         </div>
@@ -160,8 +160,8 @@
                 </span>
               </div>
               <div class="catalog-company-actions" style="display: flex; gap: 8px;">
-                <button class="catalog-button secondary outline" (click)="startEditingMedia(media, company.id)">Modifier</button>
-                <button class="catalog-button warning" (click)="toggleMediaStatus(media, company.id)" style="background: #fef3c7; color: #b45309; border: none; font-weight: 500;">
+                <button class="catalog-button secondary outline" (click)="startMediaEdit(company, media)">Modifier</button>
+                <button class="catalog-button warning" (click)="toggleMediaActive(company, media)" style="background: #fef3c7; color: #b45309; border: none; font-weight: 500;">
                   {{ media.isActive ? 'Désactiver' : 'Activer' }}
                 </button>
                 <button class="catalog-button danger" (click)="deleteMedia(media)" style="background: #fee2e2; color: #b91c1c; border: none; font-weight: 500;">Supprimer</button>
@@ -177,8 +177,8 @@
                 <input type="checkbox" [(ngModel)]="editMediaActive" style="accent-color: #0f766e;" /> Actif
               </label>
               <div style="display: flex; gap: 8px;">
-                <button class="catalog-button secondary outline" (click)="cancelEditingMedia()">Annuler</button>
-                <button class="catalog-button primary" (click)="saveMedia()" style="background: #0f766e; color: white;">Enregistrer</button>
+                <button class="catalog-button secondary outline" (click)="cancelMediaEdit()">Annuler</button>
+                <button class="catalog-button primary" (click)="saveMedia(media)" style="background: #0f766e; color: white;">Enregistrer</button>
               </div>
             </div>
 
