@@ -106,6 +106,9 @@ export class AdminDashboard implements OnInit {
   paymentPage = 1;
   readonly paymentPageSize = 10;
 
+  pendingPaymentPage = 1;
+  readonly pendingPaymentPageSize = 10;
+
   contacts: any[] = [];
   contactPage = 1;
   readonly contactPageSize = 10;
@@ -411,6 +414,22 @@ loadAdminData(): void {
 
   get paymentLastPage(): number {
     return Math.max(1, Math.ceil(this.filteredPayments.length / this.paymentPageSize));
+  }
+
+  // Pagination pour les paiements en attente
+  get paginatedPendingPayments(): any[] {
+    const startIndex = (this.pendingPaymentPage - 1) * this.pendingPaymentPageSize;
+    return this.pendingPayments.slice(startIndex, startIndex + this.pendingPaymentPageSize);
+  }
+
+  get pendingPaymentLastPage(): number {
+    return Math.max(1, Math.ceil(this.pendingPayments.length / this.pendingPaymentPageSize));
+  }
+
+  goToPendingPaymentPage(page: number): void {
+    if (page >= 1 && page <= this.pendingPaymentLastPage) {
+      this.pendingPaymentPage = page;
+    }
   }
 
   goToPaymentPage(page: number): void {
@@ -754,16 +773,123 @@ loadAdminData(): void {
   }
 
   deleteMedia(media: ManagedPressMedia): void {
-    if (this.catalogAction || !confirm(`Supprimer le média « ${media.name} » ?`)) return;
+    if (!confirm(`Supprimer définitivement le média "${media.name}" ?`)) return;
 
-    this.runCatalogAction(
-      `media-${media.id}`,
-      this.pressMediaService.deleteMedia(media.id),
-      'Média supprimé avec succès.',
-      () => {
-        if (this.editingMediaId === media.id) this.cancelMediaEdit();
+    this.catalogAction = 'delete-media';
+    this.pressMediaService.deleteMedia(media.id).subscribe({
+      next: () => {
+        this.loadPressCompanies(true);
+        this.catalogSuccess = 'Média supprimé avec succès.';
       },
-    );
+      error: () => {
+        this.catalogAction = '';
+        this.catalogError = 'Impossible de supprimer le média.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  startEditingCompany(company: PressCompanyRecord, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.editingCompanyId = company.id;
+    this.editCompanyName = company.name;
+    this.editCompanyActive = company.isActive;
+  }
+
+  cancelEditingCompany(): void {
+    this.editingCompanyId = null;
+  }
+
+  saveCompany(): void {
+    if (!this.editingCompanyId) return;
+    this.catalogAction = 'edit-company';
+    this.pressMediaService.updateCompany(this.editingCompanyId, {
+      name: this.editCompanyName,
+      isActive: this.editCompanyActive
+    }).subscribe({
+      next: () => {
+        this.editingCompanyId = null;
+        this.loadPressCompanies(true);
+        this.catalogSuccess = 'Entreprise mise à jour.';
+      },
+      error: () => {
+        this.catalogAction = '';
+        this.catalogError = 'Erreur lors de la mise à jour de l\'entreprise.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  toggleCompanyStatus(company: PressCompanyRecord, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.pressMediaService.updateCompany(company.id, { name: company.name, isActive: !company.isActive }).subscribe({
+      next: () => this.loadPressCompanies(true),
+      error: () => this.catalogError = 'Erreur de changement de statut.'
+    });
+  }
+
+  deleteCompany(company: PressCompanyRecord, event?: Event): void {
+    if (event) event.stopPropagation();
+    if (!confirm(`Supprimer définitivement l'entreprise "${company.name}" et tous ses médias ?`)) return;
+    
+    this.catalogAction = 'delete-company';
+    this.pressMediaService.deleteCompany(company.id).subscribe({
+      next: () => {
+        this.loadPressCompanies(true);
+        this.catalogSuccess = 'Entreprise supprimée avec succès.';
+      },
+      error: () => {
+        this.catalogAction = '';
+        this.catalogError = 'Erreur lors de la suppression de l\'entreprise.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  startEditingMedia(media: ManagedPressMedia, companyId: number): void {
+    this.editingMediaId = media.id;
+    this.editMediaCompanyId = companyId;
+    this.editMediaName = media.name;
+    this.editMediaType = media.type;
+    this.editMediaActive = media.isActive;
+  }
+
+  cancelEditingMedia(): void {
+    this.editingMediaId = null;
+  }
+
+  saveMedia(): void {
+    if (!this.editingMediaId || !this.editMediaCompanyId) return;
+    this.catalogAction = 'edit-media';
+    this.pressMediaService.updateMedia(this.editingMediaId, {
+      pressCompanyId: this.editMediaCompanyId,
+      name: this.editMediaName,
+      type: this.editMediaType,
+      isActive: this.editMediaActive
+    }).subscribe({
+      next: () => {
+        this.editingMediaId = null;
+        this.loadPressCompanies(true);
+        this.catalogSuccess = 'Média mis à jour.';
+      },
+      error: () => {
+        this.catalogAction = '';
+        this.catalogError = 'Erreur lors de la mise à jour du média.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  toggleMediaStatus(media: ManagedPressMedia, companyId: number): void {
+    this.pressMediaService.updateMedia(media.id, {
+      pressCompanyId: companyId,
+      name: media.name,
+      type: media.type,
+      isActive: !media.isActive
+    }).subscribe({
+      next: () => this.loadPressCompanies(true),
+      error: () => this.catalogError = 'Erreur de changement de statut.'
+    });
   }
 
   toggleCompanyDetails(companyId: number): void {

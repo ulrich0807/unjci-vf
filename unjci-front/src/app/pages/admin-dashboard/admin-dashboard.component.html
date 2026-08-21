@@ -107,30 +107,83 @@
     </div>
 
     <div class="catalog-list" *ngIf="filteredPressCompanies.length">
-      <div class="catalog-company" [class.catalog-inactive]="!company.isActive" *ngFor="let company of filteredPressCompanies">
-        <div class="catalog-company-heading">
-          <button type="button" class="catalog-company-toggle" (click)="toggleCompanyDetails(company.id)">
-            <strong>{{ company.name }}</strong>
-            <span class="status" [class.active]="company.isActive" [class.pending]="!company.isActive">
-              {{ company.isActive ? 'Active' : 'Inactivée' }}
-            </span>
-            <svg class="catalog-chevron" [class.open]="expandedCompanyIds.has(company.id)" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="catalog-company" [class.catalog-inactive]="!company.isActive" *ngFor="let company of paginatedPressCompanies">
+        <div class="catalog-company-heading" *ngIf="editingCompanyId !== company.id" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+          <button type="button" class="catalog-company-toggle" (click)="toggleCompanyDetails(company.id)" style="display: flex; align-items: flex-start; gap: 12px; background: none; border: none; cursor: pointer; padding: 0;">
+            <svg class="catalog-chevron" [class.open]="expandedCompanyIds.has(company.id)" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px;">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
+            <div style="text-align: left;">
+              <strong style="font-size: 1rem; color: #1e293b;">{{ company.name }}</strong>
+              <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">{{ company.media.length }} média{{ company.media.length > 1 ? 's' : '' }}</div>
+            </div>
           </button>
-        </div>
-        <div class="catalog-media-list" *ngIf="expandedCompanyIds.has(company.id)">
-          <div class="catalog-media-row" *ngFor="let media of company.media">
-            <strong>{{ media.name }}</strong>
-            <small>{{ media.type }}</small>
-            <span class="status" [class.active]="media.isActive" [class.pending]="!media.isActive">
-              {{ media.isActive ? 'Actif' : 'Inactivé' }}
+          
+          <div class="catalog-company-actions" style="display: flex; gap: 8px; align-items: center;">
+            <span class="status" [class.active]="company.isActive" [class.pending]="!company.isActive" style="margin-right: 8px;">
+              {{ company.isActive ? 'Active' : 'Inactivée' }}
             </span>
-            <div class="catalog-company-actions">
-              <button class="catalog-button danger" (click)="deleteMedia(media)">Supprimer</button>
+            <button class="catalog-button secondary outline" (click)="startEditingCompany(company, $event)">Modifier</button>
+            <button class="catalog-button warning" (click)="toggleCompanyStatus(company, $event)" style="background: #fef3c7; color: #b45309; border: none; font-weight: 500;">
+              {{ company.isActive ? 'Désactiver' : 'Activer' }}
+            </button>
+            <button class="catalog-button danger" (click)="deleteCompany(company, $event)" style="background: #fee2e2; color: #b91c1c; border: none; font-weight: 500;">Supprimer</button>
+          </div>
+        </div>
+
+        <div class="catalog-company-edit" *ngIf="editingCompanyId === company.id" style="padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin: 12px 16px;">
+          <div style="margin-bottom: 8px;">
+            <small style="color: #475569; font-weight: 600;">Nom de l'entreprise</small>
+          </div>
+          <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between;">
+            <input type="text" [(ngModel)]="editCompanyName" style="flex: 1; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;" />
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; color: #334155; cursor: pointer;">
+              <input type="checkbox" [(ngModel)]="editCompanyActive" style="width: 18px; height: 18px; accent-color: #0f766e;" />
+              Entreprise active
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <button class="catalog-button secondary outline" (click)="cancelEditingCompany()">Annuler</button>
+              <button class="catalog-button primary" (click)="saveCompany()" style="background: #0f766e; color: white;">Enregistrer</button>
             </div>
           </div>
-          <div class="catalog-media-row empty" *ngIf="!company.media.length">
+        </div>
+
+        <div class="catalog-media-list" *ngIf="expandedCompanyIds.has(company.id)">
+          <div class="catalog-media-row" *ngFor="let media of company.media" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-top: 1px solid #f1f5f9;">
+            
+            <div *ngIf="editingMediaId !== media.id" style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: space-between;">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <strong style="color: #334155; font-size: 0.95rem;">{{ media.name }}</strong>
+                <small style="background: #f1f5f9; padding: 4px 10px; border-radius: 12px; color: #475569; font-weight: 500;">{{ media.type }}</small>
+                <span class="status" [class.active]="media.isActive" [class.pending]="!media.isActive">
+                  {{ media.isActive ? 'Actif' : 'Inactivé' }}
+                </span>
+              </div>
+              <div class="catalog-company-actions" style="display: flex; gap: 8px;">
+                <button class="catalog-button secondary outline" (click)="startEditingMedia(media, company.id)">Modifier</button>
+                <button class="catalog-button warning" (click)="toggleMediaStatus(media, company.id)" style="background: #fef3c7; color: #b45309; border: none; font-weight: 500;">
+                  {{ media.isActive ? 'Désactiver' : 'Activer' }}
+                </button>
+                <button class="catalog-button danger" (click)="deleteMedia(media)" style="background: #fee2e2; color: #b91c1c; border: none; font-weight: 500;">Supprimer</button>
+              </div>
+            </div>
+
+            <div class="catalog-media-edit" *ngIf="editingMediaId === media.id" style="display: flex; gap: 16px; align-items: center; width: 100%; background: #f8fafc; padding: 8px; border-radius: 6px;">
+              <input type="text" [(ngModel)]="editMediaName" style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;" />
+              <select [(ngModel)]="editMediaType" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <option *ngFor="let t of mediaTypes" [value]="t">{{ t }}</option>
+              </select>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer;">
+                <input type="checkbox" [(ngModel)]="editMediaActive" style="accent-color: #0f766e;" /> Actif
+              </label>
+              <div style="display: flex; gap: 8px;">
+                <button class="catalog-button secondary outline" (click)="cancelEditingMedia()">Annuler</button>
+                <button class="catalog-button primary" (click)="saveMedia()" style="background: #0f766e; color: white;">Enregistrer</button>
+              </div>
+            </div>
+
+          </div>
+          <div class="catalog-media-row empty" *ngIf="!company.media.length" style="padding: 16px 24px; color: #94a3b8; font-style: italic;">
             Aucun média rattaché à cette entreprise.
           </div>
         </div>
@@ -192,7 +245,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let payment of pendingPayments">
+          <tr *ngFor="let payment of paginatedPendingPayments">
             <td>{{ payment.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
               <strong>{{ payment.member?.last_name | uppercase }} {{ payment.member?.first_name }}</strong>
@@ -217,6 +270,13 @@
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="login-audit-pagination" *ngIf="pendingPayments.length" style="padding: 1rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <span>Page {{ pendingPaymentPage }} sur {{ pendingPaymentLastPage }}</span>
+      <div>
+        <button class="login-audit-button secondary" (click)="goToPendingPaymentPage(pendingPaymentPage - 1)" [disabled]="pendingPaymentPage <= 1">Précédent</button>
+        <button class="login-audit-button secondary" (click)="goToPendingPaymentPage(pendingPaymentPage + 1)" [disabled]="pendingPaymentPage >= pendingPaymentLastPage">Suivant</button>
+      </div>
     </div>
   </section>
 
