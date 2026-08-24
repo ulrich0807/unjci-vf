@@ -27,6 +27,7 @@ export class RenewalEntryComponent implements OnInit {
     const destinations: Record<UserRole, string> = {
       member: '/espace-membre',
       admin: '/administration',
+      media_admin: '/administration',
       scanner: '/scanner',
     };
 
