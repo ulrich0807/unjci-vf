@@ -116,6 +116,8 @@ class MemberController extends Controller
                 Rule::unique('members', 'press_card_number')->ignore($existingMember?->id),
             ],
             'pressCardExpiry' => 'required|date',
+            'oldCardRectoFile' => $request->input('requestType') === 'renewal' ? ($existingMember ? 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'required|file|mimes:pdf,jpg,jpeg,png|max:2048') : 'nullable',
+            'oldCardVersoFile' => $request->input('requestType') === 'renewal' ? ($existingMember ? 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'required|file|mimes:pdf,jpg,jpeg,png|max:2048') : 'nullable',
             'pressCardRectoFile' => $existingMember ? 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'pressCardVersoFile' => $existingMember ? 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048' : 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'photoFile' => $existingMember ? 'nullable|file|mimes:jpg,jpeg,png|max:2048' : 'required|file|mimes:jpg,jpeg,png|max:2048',
@@ -203,12 +205,20 @@ class MemberController extends Controller
             $pressCardRectoPath = $existingMember->press_card_recto;
             $pressCardVersoPath = $existingMember->press_card_verso;
             $photoPath = $existingMember->photo_file_path;
+            $oldCardRectoPath = $existingMember->old_card_recto_path;
+            $oldCardVersoPath = $existingMember->old_card_verso_path;
 
             if ($request->hasFile('pressCardRectoFile')) {
                 $pressCardRectoPath = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'public');
             }
             if ($request->hasFile('pressCardVersoFile')) {
                 $pressCardVersoPath = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'public');
+            }
+            if ($request->hasFile('oldCardRectoFile')) {
+                $oldCardRectoPath = $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'public');
+            }
+            if ($request->hasFile('oldCardVersoFile')) {
+                $oldCardVersoPath = $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'public');
             }
             if ($request->hasFile('photoFile')) {
                 $photoPath = $request->file('photoFile')->store('members/photos', 'public');
@@ -235,6 +245,8 @@ class MemberController extends Controller
                 'press_card_expiry' => $validated['pressCardExpiry'],
                 'press_card_recto' => $pressCardRectoPath,
                 'press_card_verso' => $pressCardVersoPath,
+                'old_card_recto_path' => $oldCardRectoPath,
+                'old_card_verso_path' => $oldCardVersoPath,
                 'photo_file_path' => $photoPath,
                 'declaration_accepted' => $validated['declarationAccepted'],
                 'privacy_accepted' => $validated['privacyAccepted'],
@@ -249,10 +261,12 @@ class MemberController extends Controller
 
         $pressCardRectoPath = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'public');
         $pressCardVersoPath = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'public');
+        $oldCardRectoPath = $request->hasFile('oldCardRectoFile') ? $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'public') : null;
+        $oldCardVersoPath = $request->hasFile('oldCardVersoFile') ? $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'public') : null;
         $photoPath = $request->file('photoFile')->store('members/photos', 'public');
 
         try {
-            $member = DB::transaction(function () use ($validated, $pressCardRectoPath, $pressCardVersoPath, $photoPath, $submittedMemberNumber) {
+            $member = DB::transaction(function () use ($validated, $pressCardRectoPath, $pressCardVersoPath, $oldCardRectoPath, $oldCardVersoPath, $photoPath, $submittedMemberNumber) {
                 $proposedMemberNumber = $submittedMemberNumber !== '' ? $submittedMemberNumber : null;
 
                 if ($proposedMemberNumber) {
@@ -291,6 +305,8 @@ class MemberController extends Controller
                     'press_card_expiry' => $validated['pressCardExpiry'],
                     'press_card_recto' => $pressCardRectoPath,
                     'press_card_verso' => $pressCardVersoPath,
+                    'old_card_recto_path' => $oldCardRectoPath,
+                    'old_card_verso_path' => $oldCardVersoPath,
                     'photo_file_path' => $photoPath,
                     'declaration_accepted' => $validated['declarationAccepted'],
                     'privacy_accepted' => $validated['privacyAccepted'],
@@ -314,6 +330,41 @@ class MemberController extends Controller
             'data' => $member,
             'login_identifier' => $member->personal_email,
         ], 201);
+    }
+
+    public function uploadOldCards(Request $request)
+    {
+        $validated = $request->validate([
+            'oldCardRectoFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'oldCardVersoFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Non authentifié.'], 401);
+        }
+
+        $member = $user->member;
+        if (!$member) {
+            return response()->json(['message' => 'Profil membre introuvable.'], 404);
+        }
+
+        $updates = [];
+
+        if ($request->hasFile('oldCardRectoFile')) {
+            $updates['old_card_recto_path'] = $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'public');
+        }
+
+        if ($request->hasFile('oldCardVersoFile')) {
+            $updates['old_card_verso_path'] = $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'public');
+        }
+
+        if (count($updates) > 0) {
+            $member->update($updates);
+            return response()->json(['message' => 'Cartes ajoutées avec succès.', 'data' => $member], 200);
+        }
+
+        return response()->json(['message' => 'Aucun fichier fourni.'], 400);
     }
 
     public function findByCardNumber(string $cardNumber)

@@ -158,6 +158,11 @@ export class ApplicationComponent implements OnInit {
     mediaSelection: ['', Validators.required],
     mediaName: ['', Validators.required],
     mediaType: ['', Validators.required],
+    professionalStatus: ['', Validators.required], 
+    employers: ['', Validators.required],
+    mediaSelection: ['', Validators.required],
+    mediaName: ['', Validators.required],
+    mediaType: ['', Validators.required],
     functionTitle: ['', Validators.required], 
     pressCardNumber: ['', [Validators.required, Validators.pattern(/^\d{4}JP$/)]],
     pressCardExpiry: ['', Validators.required], 
@@ -166,6 +171,8 @@ export class ApplicationComponent implements OnInit {
     
     pressCardRectoFile: ['', Validators.required],
     pressCardVersoFile: ['', Validators.required],
+    oldCardRectoFile: [''],
+    oldCardVersoFile: [''],
     photoFile: ['', Validators.required], 
     photoDataUrl: [''],
     
@@ -180,11 +187,11 @@ export class ApplicationComponent implements OnInit {
   }, { validators: [this.passwordsMatch] });
 
 
-  fileSelected(event: Event, control: 'pressCardRectoFile' | 'pressCardVersoFile' | 'photoFile') {
+  fileSelected(event: Event, control: 'pressCardRectoFile' | 'pressCardVersoFile' | 'photoFile' | 'oldCardRectoFile' | 'oldCardVersoFile') {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
-    if (control === 'photoFile' || control === 'pressCardRectoFile' || control === 'pressCardVersoFile') {
+    if (control === 'photoFile' || control === 'pressCardRectoFile' || control === 'pressCardVersoFile' || control === 'oldCardRectoFile' || control === 'oldCardVersoFile') {
       this.photoError = '';
       const maximumFileSize = 2 * 1024 * 1024;
       if (file.size > maximumFileSize) {
@@ -261,9 +268,15 @@ export class ApplicationComponent implements OnInit {
       this.submissionError = 'Veuillez remplir correctement tous les champs en rouge avant de continuer.';
       return;
     }
-    if (this.currentStep === 3 && this.isStepInvalid(['pressCardRectoFile', 'pressCardVersoFile', 'photoFile'])) {
-      this.submissionError = 'Veuillez fournir toutes les pièces justificatives requises (en rouge).';
-      return;
+    if (this.currentStep === 3) {
+      const requiredFiles = ['pressCardRectoFile', 'pressCardVersoFile', 'photoFile'];
+      if (this.isRenewal) {
+        requiredFiles.push('oldCardRectoFile', 'oldCardVersoFile');
+      }
+      if (this.isStepInvalid(requiredFiles)) {
+        this.submissionError = 'Veuillez fournir toutes les pièces justificatives requises (en rouge).';
+        return;
+      }
     }
     
     // Pour l'étape 4, on vérifie aussi la validation croisée des mots de passe
@@ -330,6 +343,17 @@ export class ApplicationComponent implements OnInit {
       if (!control) continue;
       control.setValidators(Validators.required);
       control.updateValueAndValidity();
+    }
+
+    if (this.isRenewal) {
+      const oldCardControls = ['oldCardRectoFile', 'oldCardVersoFile'] as const;
+      for (const controlName of oldCardControls) {
+        const control = this.form.get(controlName);
+        if (control) {
+          control.setValidators(Validators.required);
+          control.updateValueAndValidity();
+        }
+      }
     }
 
     const passwordControl = this.form.get('password');
@@ -492,6 +516,8 @@ export class ApplicationComponent implements OnInit {
     Object.keys(rawValue).forEach(key => {
       const excluded = key === 'pressCardRectoFile'
         || key === 'pressCardVersoFile'
+        || key === 'oldCardRectoFile'
+        || key === 'oldCardVersoFile'
         || key === 'photoFile'
         || key === 'confirmPassword'
         || (key === 'currentMemberNumber'
@@ -508,6 +534,8 @@ export class ApplicationComponent implements OnInit {
 
     if (this.selectedFiles['pressCardRectoFile']) formData.append('pressCardRectoFile', this.selectedFiles['pressCardRectoFile']);
     if (this.selectedFiles['pressCardVersoFile']) formData.append('pressCardVersoFile', this.selectedFiles['pressCardVersoFile']);
+    if (this.selectedFiles['oldCardRectoFile']) formData.append('oldCardRectoFile', this.selectedFiles['oldCardRectoFile']);
+    if (this.selectedFiles['oldCardVersoFile']) formData.append('oldCardVersoFile', this.selectedFiles['oldCardVersoFile']);
     if (this.selectedFiles['photoFile']) formData.append('photoFile', this.selectedFiles['photoFile']);
 
     this.memberService.submitApplication(formData).subscribe({

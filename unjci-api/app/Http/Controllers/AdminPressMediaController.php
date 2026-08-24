@@ -149,7 +149,7 @@ class AdminPressMediaController extends Controller
 
     private function ensureAdmin(Request $request): void
     {
-        abort_unless($request->user()?->role === 'admin', 403, 'Accès non autorisé.');
+        abort_unless($request->user()?->hasPermission('manage_media'), 403, 'Accès non autorisé.');
     }
 
     private function companyData(PressCompany $company): array

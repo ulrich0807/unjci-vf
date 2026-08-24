@@ -37,6 +37,12 @@
 
     </section>
 
+    <div *ngIf="isMissingOldCards" class="error-message" style="margin-bottom: 24px; padding: 16px; border-radius: 8px; font-size: 1rem; line-height: 1.5;">
+      <strong>Dossier incomplet :</strong> Vous n'avez pas encore ajouté votre ancienne carte UNJCI.<br>
+      Veuillez <a href="javascript:void(0)" (click)="scrollToOldCards()" style="text-decoration: underline; font-weight: bold; cursor: pointer;">cliquer sur ce lien pour ajouter votre ancienne carte (recto et verso)</a>.<br>
+      Si vous ne l'avez plus, <a routerLink="/contact" style="text-decoration: underline; font-weight: bold; cursor: pointer;">contactez les administrateurs depuis ce lien</a>.
+    </div>
+
     <section id="profil" class="content-card profile-card">
       <div class="section-head">
         <div>
@@ -131,6 +137,41 @@
         <div class="form-actions wide">
           <button type="submit" class="primary-button" [disabled]="changingPassword">
             {{ changingPassword ? 'Modification...' : 'Modifier le mot de passe' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section id="anciennes-cartes" *ngIf="isMissingOldCards" class="content-card old-cards-card">
+      <div class="section-head">
+        <div>
+          <span class="section-label">OBLIGATOIRE</span>
+          <h2>Anciennes cartes UNJCI manquantes</h2>
+          <p class="payment-intro">Votre demande de renouvellement nécessite la copie de votre ancienne carte UNJCI (recto et verso).</p>
+        </div>
+      </div>
+
+      <div *ngIf="oldCardsUploaded" class="success-message">Vos fichiers ont bien été transmis.</div>
+      
+      <form *ngIf="!oldCardsUploaded" [formGroup]="oldCardForm" (ngSubmit)="submitOldCards()">
+        <div class="grid" style="gap: 1.5rem; margin-top: 1rem;">
+          <label class="upload">
+            <span class="field-label">Ancienne Carte (Recto) <b>*</b></span>
+            <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'recto')">
+            <strong>{{ oldCardForm.value.oldCardRecto || 'Choisir le fichier' }}</strong>
+          </label>
+
+          <label class="upload">
+            <span class="field-label">Ancienne Carte (Verso) <b>*</b></span>
+            <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'verso')">
+            <strong>{{ oldCardForm.value.oldCardVerso || 'Choisir le fichier' }}</strong>
+          </label>
+        </div>
+        <div *ngIf="oldCardsError" class="wide error-message" style="margin-top: 1rem;">{{ oldCardsError }}</div>
+        
+        <div class="form-actions wide" style="margin-top: 1.5rem;">
+          <button type="submit" class="primary-button" [disabled]="uploadingOldCards">
+            {{ uploadingOldCards ? 'Transmission...' : 'Transmettre les cartes' }}
           </button>
         </div>
       </form>

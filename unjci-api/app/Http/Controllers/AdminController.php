@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -24,17 +25,18 @@ class AdminController extends Controller
 {
     public function __construct(private readonly MemberNumberAllocator $memberNumbers) {}
 
-    // Petite fonction de sécurité pour bloquer les non-admins
-    private function checkAdmin(Request $request)
+    private function checkPermission(Request $request, string $permission)
     {
-        if ($request->user()->role !== 'admin') {
-            abort(403, 'Accès non autorisé.');
+        if (!$request->user()->hasPermission($permission)) {
+            abort(403, 'Accès non autorisé (permission requise : ' . $permission . ').');
         }
     }
 
     public function dashboard(Request $request)
     {
-        $this->checkAdmin($request);
+        if (!in_array($request->user()->role, ['admin', 'media_admin'])) {
+            abort(403, 'Accès non autorisé.');
+        }
 
         $members = Member::with('payments')->orderBy('created_at', 'desc')->get();
 
@@ -46,12 +48,13 @@ class AdminController extends Controller
         return response()->json([
             'members' => $members,
             'payments' => $payments, // On renvoie tout à Angular
+            'myPermissions' => $request->user()->permissions ?? [],
         ]);
     }
 
     public function loginAudits(Request $request)
     {
-        $this->checkAdmin($request);
+        $this->checkPermission($request, 'view_login_history');
 
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
@@ -104,9 +107,46 @@ class AdminController extends Controller
         ]);
     }
 
+    public function listAdmins(Request $request)
+    {
+        $this->checkPermission($request, 'manage_admins');
+        $admins = User::whereIn('role', ['admin', 'media_admin'])->get();
+        return response()->json($admins);
+    }
+
+    public function storeAdmin(Request $request)
+    {
+        $this->checkPermission($request, 'manage_admins');
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'login' => 'required|string|unique:users,login',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:admin,media_admin',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'login' => $validated['login'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'permissions' => $validated['permissions'] ?? [],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compte administrateur créé avec succès.',
+            'data' => $user,
+        ]);
+    }
+
     public function updateMemberStatus(Request $request, $id)
     {
-        $this->checkAdmin($request);
+        $this->checkPermission($request, 'manage_members');
 
         if (is_string($request->input('verifiedMemberNumber'))) {
             $request->merge([
@@ -221,7 +261,7 @@ class AdminController extends Controller
 
     public function updateMemberDetails(Request $request, $id)
     {
-        $this->checkAdmin($request);
+        $this->checkPermission($request, 'manage_members');
         $member = Member::with('user')->findOrFail($id);
 
         $validated = $request->validate([
@@ -288,7 +328,7 @@ class AdminController extends Controller
 
     public function validatePayment(Request $request, $id)
     {
-        $this->checkAdmin($request);
+        $this->checkPermission($request, 'manage_payments');
 
         $validated = $request->validate([
             'status' => 'required|in:pending,approved,rejected',

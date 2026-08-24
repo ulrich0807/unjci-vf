@@ -223,7 +223,7 @@
   </ng-template>
 
   <!-- NOUVELLE SECTION : VALIDATION DES PAIEMENTS -->
-  <section class="members-card" *ngIf="pendingPayments.length > 0">
+  <section class="members-card" *ngIf="hasPermission('manage_payments') && pendingPayments.length > 0">
     <div class="card-heading">
       <div>
         <span class="orange">ACTION REQUISE</span>
@@ -301,7 +301,7 @@
 
     <div class="table-wrap" *ngIf="filteredMembers.length; else empty">
       <table>
-        <thead><tr><th>Adhérent</th><th>N° membre</th><th>Demande</th><th>Statut</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Adhérent</th><th>N° membre</th><th>Demande</th><th>Statut</th><th *ngIf="hasPermission('manage_members')">Actions</th></tr></thead>
         <tbody>
           <tr *ngFor="let member of paginatedMembers" class="clickable-row" (click)="openMemberDetails(member)">
             <td>
@@ -328,7 +328,7 @@
             </td>
             <td>{{ member.request_type }}<small>{{ member.created_at | date:'dd/MM/yyyy HH:mm' }}</small></td>
             <td><span class="status" [attr.data-status]="member.membership_stage || member.status">{{ memberStageLabel(member) }}</span></td>
-            <td>
+            <td *ngIf="hasPermission('manage_members')">
               <div class="actions" *ngIf="member.membership_stage === 'under_review'; else noReviewAction">
                 <label *ngIf="requiresMemberNumberVerification(member)">
                   <small>Numéro UNJCI vérifié</small>
@@ -368,7 +368,7 @@
 
 
   <!-- NOUVELLE SECTION : HISTORIQUE COMPLET DES PAIEMENTS -->
-  <section class="members-card payment-history-card" style=" margin: 24px 0; ">
+  <section class="members-card payment-history-card" style=" margin: 24px 0; " *ngIf="hasPermission('view_payment_history')">
     <div class="card-heading">
       <div>
         <span>FINANCES</span>
@@ -446,7 +446,9 @@
     </ng-template>
   </section>
 
-  <ng-container *ngTemplateOutlet="catalogSection"></ng-container>
+  <ng-container *ngIf="hasPermission('manage_media')">
+    <ng-container *ngTemplateOutlet="catalogSection"></ng-container>
+  </ng-container>
 
   <!-- MODALE DES DÉTAILS DU MEMBRE -->
   <div class="modal-overlay" *ngIf="selectedMember" (click)="closeMemberDetails()">
@@ -529,7 +531,7 @@
           </div>
         </div>
 
-        <div class="modal-actions" *ngIf="!isEditingMember" style="display: flex; justify-content: flex-end; padding-top: 24px;">
+        <div class="modal-actions" *ngIf="!isEditingMember && hasPermission('manage_members')" style="display: flex; justify-content: flex-end; padding-top: 24px;">
           <button class="catalog-button primary" (click)="toggleEditMember()" style="background: #0ea5e9; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer;">
             Modifier les informations
           </button>
@@ -598,7 +600,7 @@
   </div>
 
   <!-- NOUVELLE SECTION : CONTACTS -->
-  <section class="members-card" style="margin: 24px 0;">
+  <section class="members-card" style="margin: 24px 0;" *ngIf="hasPermission('view_contact_requests')">
     <div class="card-heading">
       <div>
         <span>MESSAGERIE</span>
@@ -637,7 +639,7 @@
   </section>
 
   <!-- HISTORIQUE DES CONNEXIONS DEPLACE EN BAS -->
-  <section class="members-card login-audit-card" aria-labelledby="login-audit-title">
+  <section class="members-card login-audit-card" aria-labelledby="login-audit-title" *ngIf="hasPermission('view_login_history')">
     <div class="card-heading login-audit-heading">
       <div>
         <span>SÉCURITÉ</span>
@@ -699,9 +701,96 @@
       </div>
     </div>
   </section>
+  <!-- NOUVELLE SECTION : GESTION DES COMPTES ADMINISTRATEURS -->
+  <section class="members-card" *ngIf="hasPermission('manage_admins')" style="margin: 24px 0;">
+    <div class="card-heading">
+      <div>
+        <span>PARAMÈTRES</span>
+        <h2>Comptes Administrateurs</h2>
+        <p>Gérez les comptes d'administration et créez des accès media.</p>
+      </div>
+    </div>
+    
+    <div class="catalog-create-grid" style="margin-bottom: 2rem;">
+      <form class="catalog-form" (ngSubmit)="storeAdmin()">
+        <div class="catalog-form-title">
+          <div>
+            <small>NOUVEAU COMPTE</small>
+            <strong>Créer un administrateur Media</strong>
+          </div>
+        </div>
+        <div class="catalog-message success-message" *ngIf="newAdminSuccess" role="status">{{ newAdminSuccess }}</div>
+        <div class="catalog-message error-message" *ngIf="newAdminError" role="alert">{{ newAdminError }}</div>
+        
+        <label>
+          Nom complet
+          <input type="text" name="adminName" [(ngModel)]="newAdminForm.name" required placeholder="Nom complet" />
+        </label>
+        <div class="catalog-fields-row">
+          <label>
+            Login
+            <input type="text" name="adminLogin" [(ngModel)]="newAdminForm.login" required placeholder="Identifiant" />
+          </label>
+          <label>
+            E-mail
+            <input type="email" name="adminEmail" [(ngModel)]="newAdminForm.email" required placeholder="E-mail" />
+          </label>
+        </div>
+        <label>
+          Mot de passe
+          <input type="password" name="adminPassword" [(ngModel)]="newAdminForm.password" required placeholder="8 caractères minimum" />
+        </label>
+
+        <div style="margin-top: 16px;">
+          <small style="display:block; margin-bottom: 8px; font-weight: bold;">Privilèges (Permissions)</small>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('manage_payments', $event)" /> Voir et valider les paiements
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('manage_members', $event)" /> Voir et valider les adhérents
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('manage_media', $event)" /> Ajouter les médias
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('view_login_history', $event)" /> Historique de connexion
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('view_payment_history', $event)" /> Historique des paiements
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('view_contact_requests', $event)" /> Demandes de contact
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" (change)="togglePermission('manage_admins', $event)" /> Créer d'autres admins
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="catalog-button primary" [disabled]="addingAdmin || !newAdminForm.name || !newAdminForm.email || !newAdminForm.login || !newAdminForm.password" style="margin-top: 24px;">
+          {{ addingAdmin ? 'Création...' : 'Créer le compte' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="table-wrap" *ngIf="admins.length; else emptyAdmins">
+      <table>
+        <thead><tr><th>Nom</th><th>Login</th><th>Email</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let admin of admins">
+            <td><strong>{{ admin.name }}</strong></td>
+            <td><code>{{ admin.login }}</code></td>
+            <td>{{ admin.email }}</td>
+            <td><span class="status" [class.active]="admin.role === 'admin'" [class.pending]="admin.role === 'media_admin'">{{ admin.role === 'admin' ? 'Super Admin' : 'Admin Media' }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #emptyAdmins><div class="empty" *ngIf="!adminsLoading"><h3>Aucun compte</h3></div></ng-template>
+  </section>
 
 </div>
-
 <!-- LIGHTBOX POUR LES DOCUMENTS -->
 <div class="modal-overlay" *ngIf="previewDocumentUrl" (click)="closeDocumentPreview()" style="z-index: 9999; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
   <div style="width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">

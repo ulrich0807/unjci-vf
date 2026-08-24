@@ -68,6 +68,12 @@ export class MemberDashboard implements OnInit {
   changingPassword = false;
   passwordSaved = false;
   passwordError = '';
+
+  oldCardForm: FormGroup;
+  uploadingOldCards = false;
+  oldCardsUploaded = false;
+  oldCardsError = '';
+  selectedOldCards: { recto?: File; verso?: File } = {};
   
   history: any[] = [];
 
@@ -96,6 +102,11 @@ export class MemberDashboard implements OnInit {
       currentPassword: ['', Validators.required],
       newPassword: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
+    });
+
+    this.oldCardForm = this.fb.group({
+      oldCardRecto: [''],
+      oldCardVerso: [''],
     });
   }
 
@@ -128,6 +139,8 @@ export class MemberDashboard implements OnInit {
           photoDataUrl: data.photo_file_path ? `${environment.storageUrl}/${data.photo_file_path}` : null,
           paymentPhone: data.payment_phone,
           transactionId: data.transaction_id,
+          old_card_recto_path: data.old_card_recto_path,
+          old_card_verso_path: data.old_card_verso_path,
         };
 
         // 2. On remplit le formulaire de profil
@@ -256,6 +269,69 @@ export class MemberDashboard implements OnInit {
         console.error('Erreur lors de l\'enregistrement', err);
         this.paymentError = err.error?.message || 'Le paiement n’a pas pu être transmis.';
         this.savingPayment = false;
+      }
+    });
+  }
+
+  get isMissingOldCards(): boolean {
+    return this.paymentMode === 'renewal' && (!this.member?.old_card_recto_path || !this.member?.old_card_verso_path);
+  }
+
+  scrollToOldCards(): void {
+    const el = document.getElementById('anciennes-cartes');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  onOldCardSelected(event: Event, type: 'recto' | 'verso'): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      this.selectedOldCards[type] = file;
+      this.oldCardForm.get(type === 'recto' ? 'oldCardRecto' : 'oldCardVerso')?.setValue(file.name);
+    }
+  }
+
+  submitOldCards(): void {
+    if (!this.selectedOldCards.recto && !this.selectedOldCards.verso) {
+      this.oldCardsError = 'Veuillez sélectionner au moins un fichier.';
+      return;
+    }
+
+    this.uploadingOldCards = true;
+    this.oldCardsError = '';
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+    const payload = new FormData();
+
+    if (this.selectedOldCards.recto) {
+      payload.append('oldCardRectoFile', this.selectedOldCards.recto);
+    }
+    if (this.selectedOldCards.verso) {
+      payload.append('oldCardVersoFile', this.selectedOldCards.verso);
+    }
+
+    this.http.post(`${environment.apiUrl}/member/upload-old-cards`, payload, { headers }).subscribe({
+      next: (res: any) => {
+        this.uploadingOldCards = false;
+        this.oldCardsUploaded = true;
+        if (res.data) {
+          this.member.old_card_recto_path = res.data.old_card_recto_path;
+          this.member.old_card_verso_path = res.data.old_card_verso_path;
+        }
+        this.selectedOldCards = {};
+        this.oldCardForm.reset();
+        
+        setTimeout(() => {
+          this.oldCardsUploaded = false;
+          this.cdr.detectChanges();
+        }, 4000);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.uploadingOldCards = false;
+        this.oldCardsError = err.error?.message || 'Erreur lors de l\'envoi des fichiers.';
+        this.cdr.detectChanges();
       }
     });
   }

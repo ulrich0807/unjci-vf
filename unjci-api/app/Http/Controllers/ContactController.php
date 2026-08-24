@@ -12,6 +12,8 @@ class ContactController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless($request->user()?->hasPermission('view_contact_requests'), 403, 'Accès non autorisé.');
+
         // Admin only
         $perPage = $request->query('perPage', 10);
         $contacts = Contact::orderBy('created_at', 'desc')->paginate($perPage);

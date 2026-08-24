@@ -25,6 +25,7 @@ class User extends Authenticatable
         'password',
         'login',
         'role',
+        'permissions',
     ];
 
     /**
@@ -47,6 +48,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permissions' => 'array',
         ];
     }
 
@@ -54,5 +56,19 @@ class User extends Authenticatable
     {
         // Un utilisateur possède un seul profil membre
         return $this->hasOne(Member::class);
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->role === 'admin') {
+            return true;
+        }
+
+        if ($this->role === 'media_admin') {
+            $perms = $this->permissions ?? [];
+            return in_array($permission, $perms);
+        }
+
+        return false;
     }
 }

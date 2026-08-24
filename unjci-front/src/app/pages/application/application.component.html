@@ -253,6 +253,24 @@
               <small class="text-danger" style="display:block; margin-top:4px; font-size:12px;" *ngIf="form.get('pressCardVersoFile')?.hasError('required') && form.get('pressCardVersoFile')?.touched">Le verso de la carte est obligatoire.</small>
             </label>
 
+            <ng-container *ngIf="isRenewal">
+              <label class="upload">
+                <span class="field-label">Ancienne Carte UNJCI (Recto) <b>*</b></span>
+                <input type="file" accept="image/*,.pdf" (change)="fileSelected($event, 'oldCardRectoFile')">
+                <strong>{{form.value.oldCardRectoFile || 'Choisir le recto'}}</strong>
+                <small class="text-muted" style="display:block; margin-top:5px; font-size:11px;">Formats : JPG, PNG, PDF. Max : 2 Mo.</small>
+                <small class="text-danger" style="display:block; margin-top:4px; font-size:12px;" *ngIf="form.get('oldCardRectoFile')?.hasError('required') && form.get('oldCardRectoFile')?.touched">L'ancienne carte est obligatoire pour un renouvellement.</small>
+              </label>
+
+              <label class="upload">
+                <span class="field-label">Ancienne Carte UNJCI (Verso) <b>*</b></span>
+                <input type="file" accept="image/*,.pdf" (change)="fileSelected($event, 'oldCardVersoFile')">
+                <strong>{{form.value.oldCardVersoFile || 'Choisir le verso'}}</strong>
+                <small class="text-muted" style="display:block; margin-top:5px; font-size:11px;">Formats : JPG, PNG, PDF. Max : 2 Mo.</small>
+                <small class="text-danger" style="display:block; margin-top:4px; font-size:12px;" *ngIf="form.get('oldCardVersoFile')?.hasError('required') && form.get('oldCardVersoFile')?.touched">L'ancienne carte est obligatoire pour un renouvellement.</small>
+              </label>
+            </ng-container>
+
             <label class="upload photo-upload">
               <span class="field-label">Photo d’identité <b>*</b></span>
               <input type="file" accept="image/jpeg,image/png" (change)="fileSelected($event,'photoFile')">

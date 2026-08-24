@@ -44,9 +44,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/member/password', [AuthController::class, 'changePassword']);
     Route::get('/member/profile', [MemberController::class, 'profile']);
     Route::post('/member/payment', [MemberController::class, 'submitPayment']); // <-- Nouvelle route
+    Route::post('/member/upload-old-cards', [MemberController::class, 'uploadOldCards']);
 
     // Routes de l'Administration
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+    Route::get('/admin/admins', [AdminController::class, 'listAdmins']);
+    Route::post('/admin/admins', [AdminController::class, 'storeAdmin']);
     Route::get('/admin/login-audits', [AdminController::class, 'loginAudits']);
     Route::put('/admin/members/{id}/status', [AdminController::class, 'updateMemberStatus']);
     Route::put('/admin/members/{id}/details', [AdminController::class, 'updateMemberDetails']);

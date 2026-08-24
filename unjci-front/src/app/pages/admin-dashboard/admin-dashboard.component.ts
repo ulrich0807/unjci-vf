@@ -60,6 +60,22 @@ export class SafeUrlPipe implements PipeTransform {
   styleUrl: './admin-dashboard.component.css'
 })
 export class AdminDashboard implements OnInit {
+  isAdmin = false;
+  myPermissions: string[] = [];
+  admins: any[] = [];
+  adminsLoading = false;
+  adminsError = '';
+  newAdminForm = {
+    name: '',
+    email: '',
+    login: '',
+    password: '',
+    role: 'media_admin',
+    permissions: [] as string[]
+  };
+  newAdminError = '';
+  newAdminSuccess = '';
+  addingAdmin = false;
   private auth = inject(AuthService);
   private router = inject(Router);
   private http = inject(HttpClient);
@@ -153,15 +169,27 @@ export class AdminDashboard implements OnInit {
     this.loadPressCompanies();
     this.loadLoginAudits();
     this.loadContacts();
+    if (this.hasPermission('manage_admins')) {
+      this.loadAdmins();
+    }
+  }
+
+  hasPermission(permission: string): boolean {
+    if (this.isAdmin) {
+      return true;
+    }
+    return this.myPermissions.includes(permission);
   }
 
   // Charge tous les membres et les paiements en attente depuis Laravel
-loadAdminData(): void {
+  loadAdminData(): void {
     const session = this.auth.getSession();
-    if (!session || session.role !== 'admin') {
+    if (!session || (session.role !== 'admin' && session.role !== 'media_admin')) {
       this.logout();
       return;
     }
+
+    this.isAdmin = session.role === 'admin';
 
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session.token}` });
     this.adminDataError = '';
@@ -170,6 +198,7 @@ loadAdminData(): void {
       next: (data: any) => {
         this.members = data.members || [];
         this.allPayments = data.payments || [];
+        this.myPermissions = data.myPermissions || [];
 
         for (const member of this.members) {
           if (this.memberNumberDrafts[member.id] === undefined) {
@@ -510,10 +539,12 @@ loadAdminData(): void {
 
   loadLoginAudits(page = this.loginAuditPage): void {
     const session = this.auth.getSession();
-    if (!session || session.role !== 'admin') {
+    if (!session || (session.role !== 'admin' && session.role !== 'media_admin')) {
       this.logout();
       return;
     }
+
+    this.isAdmin = session.role === 'admin';
 
     const requestedPage = Math.max(1, page);
     const requestId = ++this.loginAuditRequestId;
@@ -880,5 +911,69 @@ loadAdminData(): void {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
+  }
+
+  loadAdmins(): void {
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+    this.adminsLoading = true;
+    this.adminsError = '';
+
+    this.http.get(`${environment.apiUrl}/admin/admins`, { headers }).subscribe({
+      next: (data: any) => {
+        this.admins = data || [];
+        this.adminsLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.adminsError = 'Impossible de charger les administrateurs.';
+        this.adminsLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  storeAdmin(): void {
+    if (!this.newAdminForm.name || !this.newAdminForm.email || !this.newAdminForm.login || !this.newAdminForm.password) {
+      this.newAdminError = 'Tous les champs sont obligatoires.';
+      return;
+    }
+    
+    this.addingAdmin = true;
+    this.newAdminError = '';
+    this.newAdminSuccess = '';
+    
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+
+    this.http.post(`${environment.apiUrl}/admin/admins`, this.newAdminForm, { headers }).subscribe({
+      next: (res: any) => {
+        this.addingAdmin = false;
+        this.newAdminSuccess = 'Administrateur créé avec succès.';
+        this.newAdminForm = { name: '', email: '', login: '', password: '', role: 'media_admin', permissions: [] as string[] };
+        this.loadAdmins();
+        setTimeout(() => {
+          this.newAdminSuccess = '';
+          this.cdr.detectChanges();
+        }, 3000);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.addingAdmin = false;
+        this.newAdminError = err.error?.message || 'Erreur lors de la création de l\'administrateur.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  togglePermission(permission: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    if (checked) {
+      if (!this.newAdminForm.permissions.includes(permission)) {
+        this.newAdminForm.permissions.push(permission);
+      }
+    } else {
+      this.newAdminForm.permissions = this.newAdminForm.permissions.filter(p => p !== permission);
+    }
   }
 }
