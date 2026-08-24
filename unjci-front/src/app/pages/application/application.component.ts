@@ -158,11 +158,7 @@ export class ApplicationComponent implements OnInit {
     mediaSelection: ['', Validators.required],
     mediaName: ['', Validators.required],
     mediaType: ['', Validators.required],
-    professionalStatus: ['', Validators.required], 
-    employers: ['', Validators.required],
-    mediaSelection: ['', Validators.required],
-    mediaName: ['', Validators.required],
-    mediaType: ['', Validators.required],
+
     functionTitle: ['', Validators.required], 
     pressCardNumber: ['', [Validators.required, Validators.pattern(/^\d{4}JP$/)]],
     pressCardExpiry: ['', Validators.required], 

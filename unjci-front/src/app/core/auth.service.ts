@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { tap } from 'rxjs/operators'; // Permet d'exécuter une action (sauvegarder la session) lors de la réponse
 
-export type UserRole = 'member' | 'admin' | 'scanner';
+export type UserRole = 'member' | 'admin' | 'scanner' | 'media_admin';
 
 export interface UserSession {
   login: string;
