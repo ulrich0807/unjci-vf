@@ -154,7 +154,7 @@
       <div *ngIf="oldCardsUploaded" class="success-message">Vos fichiers ont bien été transmis.</div>
       
       <form *ngIf="!oldCardsUploaded" [formGroup]="oldCardForm" (ngSubmit)="submitOldCards()">
-        <div class="grid" style="gap: 1.5rem; margin-top: 1rem;">
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
           <label class="upload">
             <span class="field-label">Ancienne Carte (Recto) <b>*</b></span>
             <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'recto')">
