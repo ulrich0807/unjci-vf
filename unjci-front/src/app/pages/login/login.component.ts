@@ -70,7 +70,7 @@ export class LoginComponent {
         }
 
         // Redirections standards selon le rôle
-       if (userRole === 'admin') {
+       if (userRole === 'admin' || userRole === 'media_admin') {
           this.router.navigate(['/administration']);
         } else if (userRole === 'scanner') {
           this.router.navigate(['/scanner']);
