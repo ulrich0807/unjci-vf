@@ -328,7 +328,7 @@ input[readonly] {
   grid-column: 2;
 }
 
-.password-card {
+.old-cards-card {
   grid-column: 2;
 }
 
@@ -690,7 +690,7 @@ input[readonly] {
     grid-column: auto;
   }
 
-  .password-card {
+  .old-cards-card {
     grid-column: auto;
   }
 
