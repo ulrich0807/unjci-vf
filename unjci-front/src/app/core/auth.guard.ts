@@ -16,10 +16,9 @@ export const roleGuard = (expectedRoles: UserRole | UserRole[]): CanActivateFn =
     // 2. Transformer expectedRoles en tableau pour gérer tous les cas
     const rolesToCheck = Array.isArray(expectedRoles) ? expectedRoles : [expectedRoles];
 
-    // 3. Si le rôle de l'utilisateur n'est pas dans la liste attendue par la route
     if (!rolesToCheck.includes(session.role as UserRole)) {
       return router.createUrlTree([
-        session.role === 'admin' ? '/administration' : '/espace-membre'
+        (session.role === 'admin' || session.role === 'media_admin') ? '/administration' : '/espace-membre'
       ]);
     }
 

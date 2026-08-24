@@ -28,7 +28,7 @@ export const routes: Routes = [
   {
     path: 'administration',
     loadComponent: () => import('./pages/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboard),
-    canActivate: [roleGuard('admin')] 
+    canActivate: [roleGuard(['admin', 'media_admin'])] 
   },
 
 { path: 'scanner', component: Scanner, canActivate: [roleGuard(['admin', 'scanner'])] },
