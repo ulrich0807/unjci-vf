@@ -37,10 +37,18 @@
 
     </section>
 
-    <div *ngIf="isMissingOldCards" class="error-message" style="margin-bottom: 24px; padding: 16px; border-radius: 8px; font-size: 1rem; line-height: 1.5;">
-      <strong>Dossier incomplet :</strong> Vous n'avez pas encore ajouté votre ancienne carte UNJCI.<br>
-      Veuillez <a href="javascript:void(0)" (click)="scrollToOldCards()" style="text-decoration: underline; font-weight: bold; cursor: pointer;">cliquer sur ce lien pour ajouter votre ancienne carte (recto et verso)</a>.<br>
-      Si vous ne l'avez plus, <a routerLink="/contact" style="text-decoration: underline; font-weight: bold; cursor: pointer;">contactez les administrateurs depuis ce lien</a>.
+    <div *ngIf="isMissingOldCards" class="content-card" style="background-color: #fef2f2; border-left: 6px solid #ef4444; border-color: #fca5a5; margin-bottom: 24px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);">
+      <h3 style="color: #991b1b; font-size: 1.15rem; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        Dossier de renouvellement incomplet
+      </h3>
+      <p style="color: #7f1d1d; margin: 0 0 20px 0; font-size: 1rem; line-height: 1.5;">
+        Vous devez impérativement fournir la copie de votre ancienne carte UNJCI (Recto et Verso) pour poursuivre votre demande de renouvellement.
+      </p>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <button (click)="scrollToOldCards()" style="background-color: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'">Transmettre mes cartes</button>
+        <a routerLink="/contact" style="background-color: transparent; border: 1.5px solid #ef4444; color: #ef4444; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#fee2e2'" onmouseout="this.style.backgroundColor='transparent'">Carte perdue ? Nous contacter</a>
+      </div>
     </div>
 
     <section id="profil" class="content-card profile-card">
