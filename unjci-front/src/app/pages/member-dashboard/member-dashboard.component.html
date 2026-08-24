@@ -82,6 +82,32 @@
           <button type="submit" class="primary-button">Enregistrer</button>
         </div>
       </form>
+
+      <div *ngIf="editing" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #dce5e0;">
+        <h3 style="margin-bottom: 16px; font-size: 1.1rem;">Modifier mon mot de passe</h3>
+        <div *ngIf="passwordSaved" class="success-message">Votre mot de passe a été modifié.</div>
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+          <label class="wide">
+            Mot de passe actuel
+            <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+          </label>
+          <label>
+            Nouveau mot de passe
+            <input type="password" formControlName="newPassword" autocomplete="new-password" />
+            <small>8 caractères minimum</small>
+          </label>
+          <label>
+            Confirmer le nouveau mot de passe
+            <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
+          </label>
+          <div *ngIf="passwordError" class="wide error-message">{{ passwordError }}</div>
+          <div class="form-actions wide">
+            <button type="submit" class="primary-button" [disabled]="changingPassword">
+              {{ changingPassword ? 'Modification...' : 'Modifier le mot de passe' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </section>
 
     <section class="content-card membership-status-card" aria-labelledby="membership-status-title">
@@ -111,36 +137,7 @@
       </ng-template>
     </section>
 
-    <section class="content-card password-card">
-      <div class="section-head">
-        <div>
-          <span class="section-label">SÉCURITÉ</span>
-          <h2>Modifier mon mot de passe</h2>
-        </div>
-      </div>
-      <div *ngIf="passwordSaved" class="success-message">Votre mot de passe a été modifié.</div>
-      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
-        <label class="wide">
-          Mot de passe actuel
-          <input type="password" formControlName="currentPassword" autocomplete="current-password" />
-        </label>
-        <label>
-          Nouveau mot de passe
-          <input type="password" formControlName="newPassword" autocomplete="new-password" />
-          <small>8 caractères minimum</small>
-        </label>
-        <label>
-          Confirmer le nouveau mot de passe
-          <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
-        </label>
-        <div *ngIf="passwordError" class="wide error-message">{{ passwordError }}</div>
-        <div class="form-actions wide">
-          <button type="submit" class="primary-button" [disabled]="changingPassword">
-            {{ changingPassword ? 'Modification...' : 'Modifier le mot de passe' }}
-          </button>
-        </div>
-      </form>
-    </section>
+
 
     <section id="anciennes-cartes" *ngIf="isMissingOldCards" class="content-card old-cards-card">
       <div class="section-head">
