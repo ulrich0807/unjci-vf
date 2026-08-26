@@ -740,15 +740,17 @@
         <div class="catalog-message success-message" *ngIf="newAdminSuccess" role="status">{{ newAdminSuccess }}</div>
         <div class="catalog-message error-message" *ngIf="newAdminError" role="alert">{{ newAdminError }}</div>
         
-        <label>
-          Nom complet
-          <input type="text" name="adminName" [(ngModel)]="newAdminForm.name" required placeholder="Nom complet" />
-        </label>
-        <label>
-          Login
-          <input type="text" name="adminLogin" [(ngModel)]="newAdminForm.login" required placeholder="Identifiant" />
-        </label>
-        <div class="catalog-fields-row">
+        <div class="form-row">
+          <label>
+            Nom complet
+            <input type="text" name="adminName" [(ngModel)]="newAdminForm.name" required placeholder="Nom complet" />
+          </label>
+          <label>
+            Login
+            <input type="text" name="adminLogin" [(ngModel)]="newAdminForm.login" required placeholder="Identifiant" />
+          </label>
+        </div>
+        <div class="form-row">
           <label>
             Mot de passe
             <input type="password" name="adminPassword" [(ngModel)]="newAdminForm.password" required placeholder="8 caractères minimum" />
@@ -761,27 +763,34 @@
 
         <div style="margin-top: 16px;">
           <small style="display:block; margin-bottom: 8px; font-weight: bold;">Privilèges (Permissions)</small>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('manage_payments', $event)" /> Voir et valider les paiements
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Voir et valider les paiements</span>
+              <input type="checkbox" (change)="togglePermission('manage_payments', $event)" style="margin: 0;" />
             </label>
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('manage_members', $event)" /> Voir et valider les adhérents
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Voir et valider les adhérents</span>
+              <input type="checkbox" (change)="togglePermission('manage_members', $event)" style="margin: 0;" />
             </label>
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('manage_media', $event)" /> Ajouter les médias
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Ajouter les médias</span>
+              <input type="checkbox" (change)="togglePermission('manage_media', $event)" style="margin: 0;" />
             </label>
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('view_login_history', $event)" /> Historique de connexion
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Historique de connexion</span>
+              <input type="checkbox" (change)="togglePermission('view_login_history', $event)" style="margin: 0;" />
             </label>
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('view_payment_history', $event)" /> Historique des paiements
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Historique des paiements</span>
+              <input type="checkbox" (change)="togglePermission('view_payment_history', $event)" style="margin: 0;" />
             </label>
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('view_contact_requests', $event)" /> Demandes de contact
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Demandes de contact</span>
+              <input type="checkbox" (change)="togglePermission('view_contact_requests', $event)" style="margin: 0;" />
             </label>
-            <label style="display: flex; align-items: center; gap: 8px;">
-              <input type="checkbox" (change)="togglePermission('manage_admins', $event)" /> Créer d'autres admins
+            <label style="display: flex; align-items: center; justify-content: space-between; flex-direction: row; font-weight: normal; color: #475569;">
+              <span>Créer d'autres admins</span>
+              <input type="checkbox" (change)="togglePermission('manage_admins', $event)" style="margin: 0;" />
             </label>
           </div>
         </div>
@@ -801,8 +810,14 @@
             <td><code>{{ admin.login }}</code></td>
             <td><span class="status" [class.active]="admin.role === 'admin'" [class.pending]="admin.role === 'media_admin'">{{ admin.role === 'admin' ? 'Super Admin' : 'Admin Media' }}</span></td>
             <td>
-              <button class="outline-button" style="margin-right: 8px; font-size: 0.85rem; padding: 4px 8px;" (click)="openResetPassword(admin)">Mot de passe</button>
-              <button class="outline-button" style="color: red; border-color: red; font-size: 0.85rem; padding: 4px 8px;" (click)="deleteAdmin(admin)">Supprimer</button>
+              <div class="actions">
+                <button type="button" class="validate" title="Modifier le mot de passe" (click)="openResetPassword(admin)" style="color: #0ea5e9; background: #e0f2fe; display: flex; align-items: center; justify-content: center; padding: 6px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                </button>
+                <button type="button" class="terminate" title="Supprimer l'administrateur" (click)="deleteAdmin(admin)" style="display: flex; align-items: center; justify-content: center; padding: 6px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -850,12 +865,14 @@
     <div class="catalog-message success-message" *ngIf="changePasswordSuccess" role="status">{{ changePasswordSuccess }}</div>
     <div class="catalog-message error-message" *ngIf="changePasswordError" role="alert">{{ changePasswordError }}</div>
 
-    <form class="catalog-form edit-form" (ngSubmit)="changePassword()" style="margin-top: 16px;">
-      <label>
-        Mot de passe actuel
-        <input type="password" name="currentPassword" [(ngModel)]="changePasswordForm.currentPassword" required />
-      </label>
-      <div class="catalog-fields-row">
+    <form class="catalog-form edit-form" (ngSubmit)="changePassword()" style="margin-top: 16px; max-width: 600px;">
+      <div class="form-row" style="grid-template-columns: 1fr;">
+        <label>
+          Mot de passe actuel
+          <input type="password" name="currentPassword" [(ngModel)]="changePasswordForm.currentPassword" required />
+        </label>
+      </div>
+      <div class="form-row">
         <label>
           Nouveau mot de passe
           <input type="password" name="newPassword" [(ngModel)]="changePasswordForm.newPassword" required />
