@@ -730,7 +730,7 @@
     </div>
     
     <div class="catalog-create-grid" style="margin-bottom: 2rem;">
-      <form class="catalog-form" (ngSubmit)="storeAdmin()">
+      <form class="catalog-form edit-form" (ngSubmit)="storeAdmin()">
         <div class="catalog-form-title">
           <div>
             <small>NOUVEAU COMPTE</small>
@@ -819,14 +819,14 @@
       <div class="catalog-message success-message" *ngIf="resetPasswordSuccess" role="status">{{ resetPasswordSuccess }}</div>
       <div class="catalog-message error-message" *ngIf="resetPasswordError" role="alert">{{ resetPasswordError }}</div>
 
-      <form (ngSubmit)="submitResetPassword()">
-        <label style="display: block; margin-bottom: 12px; width: 100%;">
+      <form class="edit-form" (ngSubmit)="submitResetPassword()">
+        <label style="margin-bottom: 12px;">
           Nouveau mot de passe
-          <input type="password" name="resetPwd" [(ngModel)]="resetPasswordForm.password" required style="width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px;" />
+          <input type="password" name="resetPwd" [(ngModel)]="resetPasswordForm.password" required />
         </label>
-        <label style="display: block; margin-bottom: 16px; width: 100%;">
+        <label style="margin-bottom: 16px;">
           Confirmer nouveau mot de passe
-          <input type="password" name="resetConfirm" [(ngModel)]="resetPasswordForm.confirmPassword" required style="width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px;" />
+          <input type="password" name="resetConfirm" [(ngModel)]="resetPasswordForm.confirmPassword" required />
         </label>
         
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -850,7 +850,7 @@
     <div class="catalog-message success-message" *ngIf="changePasswordSuccess" role="status">{{ changePasswordSuccess }}</div>
     <div class="catalog-message error-message" *ngIf="changePasswordError" role="alert">{{ changePasswordError }}</div>
 
-    <form class="catalog-form" (ngSubmit)="changePassword()" style="margin-top: 16px;">
+    <form class="catalog-form edit-form" (ngSubmit)="changePassword()" style="margin-top: 16px;">
       <label>
         Mot de passe actuel
         <input type="password" name="currentPassword" [(ngModel)]="changePasswordForm.currentPassword" required />

@@ -43,7 +43,7 @@ class AuthController extends Controller
         // Auth::attempt va chercher l'utilisateur et vérifier que le mot de passe correspond au hash en BDD
         if ($user && Hash::check($request->password, $user->password)) {
             // Vérification que l'e-mail est bien vérifié avant d'autoriser la connexion
-            if (is_null($user->email_verified_at) && $user->role !== 'admin' && $user->role !== 'scanner') {
+            if (is_null($user->email_verified_at) && !in_array($user->role, ['admin', 'media_admin', 'scanner'])) {
                 $this->recordLoginAudit($request, $identifier, false, 'unverified_email', $user);
                 return response()->json([
                     'success' => false,
