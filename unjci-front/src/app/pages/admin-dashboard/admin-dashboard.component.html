@@ -744,20 +744,20 @@
           Nom complet
           <input type="text" name="adminName" [(ngModel)]="newAdminForm.name" required placeholder="Nom complet" />
         </label>
+        <label>
+          Login
+          <input type="text" name="adminLogin" [(ngModel)]="newAdminForm.login" required placeholder="Identifiant" />
+        </label>
         <div class="catalog-fields-row">
           <label>
-            Login
-            <input type="text" name="adminLogin" [(ngModel)]="newAdminForm.login" required placeholder="Identifiant" />
+            Mot de passe
+            <input type="password" name="adminPassword" [(ngModel)]="newAdminForm.password" required placeholder="8 caractères minimum" />
           </label>
           <label>
-            E-mail
-            <input type="email" name="adminEmail" [(ngModel)]="newAdminForm.email" required placeholder="E-mail" />
+            Confirmer mot de passe
+            <input type="password" name="adminPasswordConfirm" [(ngModel)]="newAdminForm.passwordConfirm" required placeholder="Confirmer le mot de passe" />
           </label>
         </div>
-        <label>
-          Mot de passe
-          <input type="password" name="adminPassword" [(ngModel)]="newAdminForm.password" required placeholder="8 caractères minimum" />
-        </label>
 
         <div style="margin-top: 16px;">
           <small style="display:block; margin-bottom: 8px; font-weight: bold;">Privilèges (Permissions)</small>
@@ -786,7 +786,7 @@
           </div>
         </div>
 
-        <button type="submit" class="catalog-button primary" [disabled]="addingAdmin || !newAdminForm.name || !newAdminForm.email || !newAdminForm.login || !newAdminForm.password" style="margin-top: 24px;">
+        <button type="submit" class="catalog-button primary" [disabled]="addingAdmin || !newAdminForm.name || !newAdminForm.login || !newAdminForm.password || !newAdminForm.passwordConfirm" style="margin-top: 24px;">
           {{ addingAdmin ? 'Création...' : 'Créer le compte' }}
         </button>
       </form>
@@ -794,18 +794,81 @@
 
     <div class="table-wrap" *ngIf="admins.length; else emptyAdmins">
       <table>
-        <thead><tr><th>Nom</th><th>Login</th><th>Email</th><th>Rôle</th></tr></thead>
+        <thead><tr><th>Nom</th><th>Login</th><th>Rôle</th><th>Actions</th></tr></thead>
         <tbody>
           <tr *ngFor="let admin of admins">
             <td><strong>{{ admin.name }}</strong></td>
             <td><code>{{ admin.login }}</code></td>
-            <td>{{ admin.email }}</td>
             <td><span class="status" [class.active]="admin.role === 'admin'" [class.pending]="admin.role === 'media_admin'">{{ admin.role === 'admin' ? 'Super Admin' : 'Admin Media' }}</span></td>
+            <td>
+              <button class="outline-button" style="margin-right: 8px; font-size: 0.85rem; padding: 4px 8px;" (click)="openResetPassword(admin)">Mot de passe</button>
+              <button class="outline-button" style="color: red; border-color: red; font-size: 0.85rem; padding: 4px 8px;" (click)="deleteAdmin(admin)">Supprimer</button>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
     <ng-template #emptyAdmins><div class="empty" *ngIf="!adminsLoading"><h3>Aucun compte</h3></div></ng-template>
+  </section>
+
+  <!-- MODAL DE RÉINITIALISATION DU MOT DE PASSE -->
+  <div class="modal-overlay" *ngIf="adminToReset" (click)="closeResetPassword()" style="z-index: 9999; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+    <div class="modal-content" (click)="$event.stopPropagation()" style="background: white; padding: 24px; border-radius: 12px; width: 100%; max-width: 400px;">
+      <h3 style="margin-top: 0; margin-bottom: 16px;">Mot de passe : {{ adminToReset.name }}</h3>
+      
+      <div class="catalog-message success-message" *ngIf="resetPasswordSuccess" role="status">{{ resetPasswordSuccess }}</div>
+      <div class="catalog-message error-message" *ngIf="resetPasswordError" role="alert">{{ resetPasswordError }}</div>
+
+      <form (ngSubmit)="submitResetPassword()">
+        <label style="display: block; margin-bottom: 12px; width: 100%;">
+          Nouveau mot de passe
+          <input type="password" name="resetPwd" [(ngModel)]="resetPasswordForm.password" required style="width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px;" />
+        </label>
+        <label style="display: block; margin-bottom: 16px; width: 100%;">
+          Confirmer nouveau mot de passe
+          <input type="password" name="resetConfirm" [(ngModel)]="resetPasswordForm.confirmPassword" required style="width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px;" />
+        </label>
+        
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="catalog-button secondary" (click)="closeResetPassword()">Annuler</button>
+          <button type="submit" class="catalog-button primary" [disabled]="resettingPassword || !resetPasswordForm.password || !resetPasswordForm.confirmPassword">
+            {{ resettingPassword ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <section class="members-card catalog-card">
+    <div class="card-heading catalog-heading">
+      <div>
+        <span>MON COMPTE</span>
+        <h2>Sécurité</h2>
+      </div>
+    </div>
+    
+    <div class="catalog-message success-message" *ngIf="changePasswordSuccess" role="status">{{ changePasswordSuccess }}</div>
+    <div class="catalog-message error-message" *ngIf="changePasswordError" role="alert">{{ changePasswordError }}</div>
+
+    <form class="catalog-form" (ngSubmit)="changePassword()" style="margin-top: 16px;">
+      <label>
+        Mot de passe actuel
+        <input type="password" name="currentPassword" [(ngModel)]="changePasswordForm.currentPassword" required />
+      </label>
+      <div class="catalog-fields-row">
+        <label>
+          Nouveau mot de passe
+          <input type="password" name="newPassword" [(ngModel)]="changePasswordForm.newPassword" required />
+        </label>
+        <label>
+          Confirmer nouveau mot de passe
+          <input type="password" name="confirmPassword" [(ngModel)]="changePasswordForm.confirmPassword" required />
+        </label>
+      </div>
+      <button type="submit" class="catalog-button primary" [disabled]="changePasswordLoading || !changePasswordForm.currentPassword || !changePasswordForm.newPassword || !changePasswordForm.confirmPassword" style="margin-top: 16px; width: auto;">
+        {{ changePasswordLoading ? 'Modification...' : 'Modifier le mot de passe' }}
+      </button>
+    </form>
   </section>
 
 </div>

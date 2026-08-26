@@ -120,7 +120,6 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
             'login' => 'required|string|unique:users,login',
             'password' => 'required|string|min:8',
             'role' => 'required|in:admin,media_admin',
@@ -130,7 +129,7 @@ class AdminController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => $validated['login'] . '@admin.local',
             'login' => $validated['login'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
@@ -142,6 +141,37 @@ class AdminController extends Controller
             'message' => 'Compte administrateur créé avec succès.',
             'data' => $user,
         ]);
+    }
+
+    public function deleteAdmin(Request $request, $id)
+    {
+        $this->checkPermission($request, 'manage_admins');
+
+        $userToDelete = User::whereIn('role', ['admin', 'media_admin'])->findOrFail($id);
+
+        if ($userToDelete->id === $request->user()->id) {
+            return response()->json(['message' => 'Vous ne pouvez pas supprimer votre propre compte.'], 403);
+        }
+
+        $userToDelete->delete();
+
+        return response()->json(['success' => true, 'message' => 'Administrateur supprimé avec succès.']);
+    }
+
+    public function resetAdminPassword(Request $request, $id)
+    {
+        $this->checkPermission($request, 'manage_admins');
+
+        $validated = $request->validate([
+            'password' => 'required|string|min:8'
+        ]);
+
+        $user = User::whereIn('role', ['admin', 'media_admin'])->findOrFail($id);
+        $user->update([
+            'password' => Hash::make($validated['password'])
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Mot de passe réinitialisé avec succès.']);
     }
 
     public function updateMemberStatus(Request $request, $id)

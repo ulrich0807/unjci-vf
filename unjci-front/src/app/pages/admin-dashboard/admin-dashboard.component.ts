@@ -67,9 +67,9 @@ export class AdminDashboard implements OnInit {
   adminsError = '';
   newAdminForm = {
     name: '',
-    email: '',
     login: '',
     password: '',
+    passwordConfirm: '',
     role: 'media_admin',
     permissions: [] as string[]
   };
@@ -96,6 +96,15 @@ export class AdminDashboard implements OnInit {
   editMemberData: any = {};
   editMemberError = '';
   editMemberSuccess = '';
+
+  changePasswordForm = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  };
+  changePasswordLoading = false;
+  changePasswordSuccess = '';
+  changePasswordError = '';
 
   allPayments: any[] = [];
   filteredPayments: any[] = [];
@@ -934,8 +943,13 @@ export class AdminDashboard implements OnInit {
   }
 
   storeAdmin(): void {
-    if (!this.newAdminForm.name || !this.newAdminForm.email || !this.newAdminForm.login || !this.newAdminForm.password) {
+    if (!this.newAdminForm.name || !this.newAdminForm.login || !this.newAdminForm.password || !this.newAdminForm.passwordConfirm) {
       this.newAdminError = 'Tous les champs sont obligatoires.';
+      return;
+    }
+
+    if (this.newAdminForm.password !== this.newAdminForm.passwordConfirm) {
+      this.newAdminError = 'Les mots de passe ne correspondent pas.';
       return;
     }
     
@@ -950,7 +964,7 @@ export class AdminDashboard implements OnInit {
       next: (res: any) => {
         this.addingAdmin = false;
         this.newAdminSuccess = 'Administrateur créé avec succès.';
-        this.newAdminForm = { name: '', email: '', login: '', password: '', role: 'media_admin', permissions: [] as string[] };
+        this.newAdminForm = { name: '', login: '', password: '', passwordConfirm: '', role: 'media_admin', permissions: [] as string[] };
         this.loadAdmins();
         setTimeout(() => {
           this.newAdminSuccess = '';
@@ -966,6 +980,74 @@ export class AdminDashboard implements OnInit {
     });
   }
 
+  deleteAdmin(admin: any): void {
+    if (!confirm(`Voulez-vous vraiment supprimer l'administrateur ${admin.name} ?`)) return;
+
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+
+    this.http.delete(`${environment.apiUrl}/admin/admins/${admin.id}`, { headers }).subscribe({
+      next: (res: any) => {
+        this.loadAdmins();
+      },
+      error: (err) => {
+        alert(err.error?.message || 'Erreur lors de la suppression.');
+      }
+    });
+  }
+
+  adminToReset: any = null;
+  resetPasswordForm = { password: '', confirmPassword: '' };
+  resetPasswordError = '';
+  resetPasswordSuccess = '';
+  resettingPassword = false;
+
+  openResetPassword(admin: any): void {
+    this.adminToReset = admin;
+    this.resetPasswordForm = { password: '', confirmPassword: '' };
+    this.resetPasswordError = '';
+    this.resetPasswordSuccess = '';
+  }
+
+  closeResetPassword(): void {
+    this.adminToReset = null;
+  }
+
+  submitResetPassword(): void {
+    if (!this.resetPasswordForm.password || !this.resetPasswordForm.confirmPassword) {
+      this.resetPasswordError = 'Tous les champs sont requis.';
+      return;
+    }
+    if (this.resetPasswordForm.password !== this.resetPasswordForm.confirmPassword) {
+      this.resetPasswordError = 'Les mots de passe ne correspondent pas.';
+      return;
+    }
+
+    this.resettingPassword = true;
+    this.resetPasswordError = '';
+    this.resetPasswordSuccess = '';
+    
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+
+    this.http.put(`${environment.apiUrl}/admin/admins/${this.adminToReset.id}/password`, { password: this.resetPasswordForm.password }, { headers }).subscribe({
+      next: (res: any) => {
+        this.resetPasswordSuccess = 'Mot de passe réinitialisé avec succès.';
+        this.resettingPassword = false;
+        setTimeout(() => {
+          this.closeResetPassword();
+          this.cdr.detectChanges();
+        }, 2000);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.resetPasswordError = err.error?.message || 'Erreur lors de la réinitialisation.';
+        this.resettingPassword = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   togglePermission(permission: string, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {
@@ -975,5 +1057,38 @@ export class AdminDashboard implements OnInit {
     } else {
       this.newAdminForm.permissions = this.newAdminForm.permissions.filter(p => p !== permission);
     }
+  }
+
+  changePassword(): void {
+    if (!this.changePasswordForm.currentPassword || !this.changePasswordForm.newPassword || !this.changePasswordForm.confirmPassword) {
+      this.changePasswordError = 'Tous les champs sont requis.';
+      return;
+    }
+    if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmPassword) {
+      this.changePasswordError = 'Les nouveaux mots de passe ne correspondent pas.';
+      return;
+    }
+
+    this.changePasswordLoading = true;
+    this.changePasswordError = '';
+    this.changePasswordSuccess = '';
+
+    this.auth.changePassword({
+      current_password: this.changePasswordForm.currentPassword,
+      new_password: this.changePasswordForm.newPassword,
+      new_password_confirmation: this.changePasswordForm.confirmPassword
+    }).subscribe({
+      next: () => {
+        this.changePasswordSuccess = 'Mot de passe modifié avec succès.';
+        this.changePasswordLoading = false;
+        this.changePasswordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.changePasswordError = err.error?.message || 'Impossible de modifier le mot de passe.';
+        this.changePasswordLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 }
