@@ -1075,8 +1075,8 @@ export class AdminDashboard implements OnInit {
 
     this.auth.changePassword({
       current_password: this.changePasswordForm.currentPassword,
-      new_password: this.changePasswordForm.newPassword,
-      new_password_confirmation: this.changePasswordForm.confirmPassword
+      password: this.changePasswordForm.newPassword,
+      password_confirmation: this.changePasswordForm.confirmPassword
     }).subscribe({
       next: () => {
         this.changePasswordSuccess = 'Mot de passe modifié avec succès.';
