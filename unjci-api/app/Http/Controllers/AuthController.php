@@ -62,6 +62,7 @@ class AuthController extends Controller
                 'success' => true,
                 'user' => $user, // Contient le 'role' pour la redirection Angular
                 'token' => $token,
+                'must_change_password' => (bool) $user->must_change_password,
             ]);
         }
 
@@ -145,8 +146,17 @@ class AuthController extends Controller
             'password.confirmed' => 'La confirmation du nouveau mot de passe ne correspond pas.',
         ]);
 
-        $request->user()->forceFill([
+        $user = $request->user();
+
+        if (in_array($user->role, ['admin', 'media_admin'])) {
+            if (!$user->must_change_password) {
+                abort(403, 'Vous ne pouvez plus modifier votre mot de passe après la première connexion.');
+            }
+        }
+
+        $user->forceFill([
             'password' => Hash::make($validated['password']),
+            'must_change_password' => false,
         ])->save();
 
         return response()->json(['message' => 'Votre mot de passe a été modifié.']);

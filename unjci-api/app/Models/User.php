@@ -26,6 +26,7 @@ class User extends Authenticatable
         'login',
         'role',
         'permissions',
+        'must_change_password',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'permissions' => 'array',
+            'must_change_password' => 'boolean',
         ];
     }
 

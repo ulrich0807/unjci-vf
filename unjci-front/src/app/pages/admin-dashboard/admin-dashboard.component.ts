@@ -1048,6 +1048,61 @@ export class AdminDashboard implements OnInit {
     });
   }
 
+  adminToEditPermissions: any = null;
+  editPermissionsForm: { permissions: string[] } = { permissions: [] };
+  editPermissionsError = '';
+  editPermissionsSuccess = '';
+  updatingPermissions = false;
+
+  openEditPermissions(admin: any): void {
+    this.adminToEditPermissions = admin;
+    this.editPermissionsForm.permissions = [...(admin.permissions || [])];
+    this.editPermissionsError = '';
+    this.editPermissionsSuccess = '';
+  }
+
+  closeEditPermissions(): void {
+    this.adminToEditPermissions = null;
+  }
+
+  toggleEditPermission(permission: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    if (checked) {
+      if (!this.editPermissionsForm.permissions.includes(permission)) {
+        this.editPermissionsForm.permissions.push(permission);
+      }
+    } else {
+      this.editPermissionsForm.permissions = this.editPermissionsForm.permissions.filter(p => p !== permission);
+    }
+  }
+
+  submitEditPermissions(): void {
+    this.updatingPermissions = true;
+    this.editPermissionsError = '';
+    this.editPermissionsSuccess = '';
+    
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+
+    this.http.put(`${environment.apiUrl}/admin/admins/${this.adminToEditPermissions.id}`, { permissions: this.editPermissionsForm.permissions }, { headers }).subscribe({
+      next: (res: any) => {
+        this.editPermissionsSuccess = 'Habilitations mises à jour.';
+        this.updatingPermissions = false;
+        setTimeout(() => {
+          this.closeEditPermissions();
+          this.loadAdmins();
+          this.cdr.detectChanges();
+        }, 1500);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.editPermissionsError = err.error?.message || 'Erreur lors de la mise à jour.';
+        this.updatingPermissions = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   togglePermission(permission: string, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {

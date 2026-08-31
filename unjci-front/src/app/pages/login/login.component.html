@@ -35,77 +35,132 @@
         <span>Connectez-vous avec votre adresse e-mail et le mot de passe que vous venez de créer pour procéder au paiement.</span>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        
-        <label>
-          <span>Adresse e-mail ou numéro UNJCI <b>*</b></span>
-          <div class="input-shell" [class.invalid]="submitted && form.controls.login.invalid">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
-            </svg>
-            <input
-              type="text"
-              formControlName="login"
-              autocomplete="username"
-              placeholder="nom@exemple.com ou UJ25-00122"
-            />
-          </div>
-          <small *ngIf="submitted && form.controls.login.hasError('required')">
-            Veuillez saisir votre identifiant.
-          </small>
-        </label>
-
-        <label>
-          <span>Mot de passe <b>*</b></span>
-          <div class="input-shell" [class.invalid]="submitted && form.controls.password.invalid">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="4" y="10" width="16" height="11" rx="2" />
-              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-            </svg>
-            <input
-              [type]="passwordVisible ? 'text' : 'password'"
-              formControlName="password"
-              autocomplete="current-password"
-              placeholder="Votre mot de passe"
-            />
-            <button
-              type="button"
-              class="password-toggle"
-              (click)="togglePasswordVisibility()"
-              [attr.aria-label]="passwordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
-            >
-              {{ passwordVisible ? 'Masquer' : 'Afficher' }}
-            </button>
-          </div>
-          <small *ngIf="submitted && form.controls.password.invalid">
-            Le mot de passe doit contenir au moins 6 caractères.
-          </small>
-        </label>
-
-        <div class="form-options">
-          <label class="remember">
-            <input type="checkbox" formControlName="rememberMe" />
-            <span>Se souvenir de moi</span>
+      <ng-container *ngIf="!mustChangePasswordView">
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <label>
+            <span>Adresse e-mail ou numéro UNJCI <b>*</b></span>
+            <div class="input-shell" [class.invalid]="submitted && form.controls.login.invalid">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+              </svg>
+              <input
+                type="text"
+                formControlName="login"
+                autocomplete="username"
+                placeholder="nom@exemple.com ou UJ25-00122"
+              />
+            </div>
+            <small *ngIf="submitted && form.controls.login.hasError('required')">
+              Veuillez saisir votre identifiant.
+            </small>
           </label>
-          <a routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
-        </div>
 
-        <div *ngIf="authenticationError" class="authentication-error" role="alert">
-          {{ authenticationErrorMessage }}
-        </div>
+          <label>
+            <span>Mot de passe <b>*</b></span>
+            <div class="input-shell" [class.invalid]="submitted && form.controls.password.invalid">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="10" width="16" height="11" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <input
+                [type]="passwordVisible ? 'text' : 'password'"
+                formControlName="password"
+                autocomplete="current-password"
+                placeholder="Votre mot de passe"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+                [attr.aria-label]="passwordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+              >
+                {{ passwordVisible ? 'Masquer' : 'Afficher' }}
+              </button>
+            </div>
+            <small *ngIf="submitted && form.controls.password.invalid">
+              Le mot de passe doit contenir au moins 6 caractères.
+            </small>
+          </label>
 
-        <button class="submit-button" type="submit">
-          Se connecter
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </button>
-      </form>
+          <div class="form-options">
+            <label class="remember">
+              <input type="checkbox" formControlName="rememberMe" />
+              <span>Se souvenir de moi</span>
+            </label>
+            <a routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
+          </div>
 
-      <p class="support">
-        Vous n’avez pas encore de compte ?
-        <a routerLink="/application">Faire une demande d’adhésion</a>
-      </p>
+          <div *ngIf="authenticationError" class="authentication-error" role="alert">
+            {{ authenticationErrorMessage }}
+          </div>
+
+          <button class="submit-button" type="submit">
+            Se connecter
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        </form>
+
+        <p class="support">
+          Vous n’avez pas encore de compte ?
+          <a routerLink="/application">Faire une demande d’adhésion</a>
+        </p>
+      </ng-container>
+
+      <ng-container *ngIf="mustChangePasswordView">
+        <form [formGroup]="changePasswordForm" (ngSubmit)="submitChangePassword()" novalidate>
+          <div class="registration-success" role="status" style="margin-bottom: 24px; background: #FFF3CD; color: #856404; border: 1px solid #FFEEBA;">
+            <strong>Action requise</strong>
+            <span>Il s'agit de votre première connexion. Vous devez définir un nouveau mot de passe personnel (8 caractères minimum).</span>
+          </div>
+
+          <label>
+            <span>Nouveau mot de passe <b>*</b></span>
+            <div class="input-shell" [class.invalid]="authenticationError && changePasswordForm.controls.password.invalid">
+              <input
+                [type]="passwordVisible ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="Au moins 8 caractères"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+              >
+                {{ passwordVisible ? 'Masquer' : 'Afficher' }}
+              </button>
+            </div>
+          </label>
+
+          <label>
+            <span>Confirmer le mot de passe <b>*</b></span>
+            <div class="input-shell" [class.invalid]="authenticationError && changePasswordForm.controls.confirmPassword.invalid">
+              <input
+                [type]="passwordVisible ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                placeholder="Ressaisir le mot de passe"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+              >
+                {{ passwordVisible ? 'Masquer' : 'Afficher' }}
+              </button>
+            </div>
+          </label>
+
+          <div *ngIf="authenticationError" class="authentication-error" role="alert" style="margin-top: 16px;">
+            {{ authenticationErrorMessage }}
+          </div>
+
+          <button class="submit-button" type="submit" style="margin-top: 24px;">
+            Enregistrer et continuer
+          </button>
+        </form>
+      </ng-container>
+
     </div>
   </section>
 </div>

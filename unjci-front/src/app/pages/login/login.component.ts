@@ -17,6 +17,9 @@ export class LoginComponent {
   authenticationError = false;
   authenticationErrorMessage = 'Adresse e-mail, numéro UNJCI ou mot de passe incorrect.';
   readonly registrationComplete: boolean;
+  mustChangePasswordView = false;
+  pendingUserRole = '';
+  pendingReturnUrl = '';
 
   readonly form = new FormGroup({
     login: new FormControl('', {
@@ -28,6 +31,11 @@ export class LoginComponent {
       validators: [Validators.required, Validators.minLength(6)],
     }),
     rememberMe: new FormControl(false, { nonNullable: true }),
+  });
+
+  readonly changePasswordForm = new FormGroup({
+    password: new FormControl('', { validators: [Validators.required, Validators.minLength(8)] }),
+    confirmPassword: new FormControl('', { validators: [Validators.required] }),
   });
 
   constructor(
@@ -65,12 +73,18 @@ export class LoginComponent {
         // Si l'utilisateur a été redirigé ici depuis un scan de QR Code
         const returnUrl = this.route.snapshot.queryParams['returnUrl'];
         if (returnUrl) {
-            this.router.navigateByUrl(returnUrl);
-            return;
+            this.pendingReturnUrl = returnUrl;
         }
 
-        // Redirections standards selon le rôle
-       if (userRole === 'admin' || userRole === 'media_admin') {
+        if (response.must_change_password) {
+           this.mustChangePasswordView = true;
+           this.pendingUserRole = userRole;
+           return;
+        }
+
+        this.finalizeLogin(userRole, this.pendingReturnUrl);
+      },
+      error: (error) => {
           this.router.navigate(['/administration']);
         } else if (userRole === 'scanner') {
           this.router.navigate(['/scanner']);
@@ -96,5 +110,50 @@ export class LoginComponent {
         this.authenticationError = true;
       }
     });
+  }
+
+  submitChangePassword(): void {
+    this.authenticationError = false;
+
+    if (this.changePasswordForm.invalid) {
+      this.changePasswordForm.markAllAsTouched();
+      this.authenticationError = true;
+      this.authenticationErrorMessage = 'Veuillez saisir un mot de passe valide (min. 8 caractères).';
+      return;
+    }
+
+    if (this.changePasswordForm.value.password !== this.changePasswordForm.value.confirmPassword) {
+      this.authenticationError = true;
+      this.authenticationErrorMessage = 'Les mots de passe ne correspondent pas.';
+      return;
+    }
+
+    this.auth.changePassword({
+      current_password: this.form.value.password!,
+      password: this.changePasswordForm.value.password!,
+      password_confirmation: this.changePasswordForm.value.confirmPassword!
+    }).subscribe({
+      next: () => {
+        this.finalizeLogin(this.pendingUserRole, this.pendingReturnUrl);
+      },
+      error: (error) => {
+        this.authenticationError = true;
+        this.authenticationErrorMessage = error.error?.message || 'Erreur lors du changement de mot de passe.';
+      }
+    });
+  }
+
+  private finalizeLogin(userRole: string, returnUrl?: string): void {
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+      return;
+    }
+    if (userRole === 'admin' || userRole === 'media_admin') {
+      this.router.navigate(['/administration']);
+    } else if (userRole === 'scanner') {
+      this.router.navigate(['/scanner']);
+    } else {
+      this.router.navigate(['/espace-membre']);
+    }
   }
 }

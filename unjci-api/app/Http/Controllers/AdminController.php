@@ -134,11 +134,34 @@ class AdminController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'permissions' => $validated['permissions'] ?? [],
+            'must_change_password' => true,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Compte administrateur créé avec succès.',
+            'data' => $user,
+        ]);
+    }
+
+    public function updateAdmin(Request $request, $id)
+    {
+        $this->checkPermission($request, 'manage_admins');
+
+        $validated = $request->validate([
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
+        ]);
+
+        $user = User::whereIn('role', ['admin', 'media_admin'])->findOrFail($id);
+
+        $user->update([
+            'permissions' => $validated['permissions'] ?? [],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Habilitations mises à jour avec succès.',
             'data' => $user,
         ]);
     }

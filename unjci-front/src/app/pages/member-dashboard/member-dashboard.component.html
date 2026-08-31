@@ -57,7 +57,7 @@
           <span class="section-label">MES INFORMATIONS</span>
           <h2>Profil personnel</h2>
         </div>
-        <button *ngIf="!editing" type="button" class="outline-button" (click)="editing = true">
+        <button *ngIf="!editing && membershipStage !== 'approved'" type="button" class="outline-button" (click)="editing = true">
           Modifier
         </button>
       </div>

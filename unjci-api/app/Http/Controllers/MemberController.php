@@ -179,6 +179,10 @@ class MemberController extends Controller
         }
 
         if ($existingMember) {
+            if ($existingMember->status === 'approved' && $validated['requestType'] !== 'renewal') {
+                 abort(403, 'Votre dossier a été validé. Vous ne pouvez plus modifier vos informations.');
+            }
+
             $user = $existingMember->user;
             if (! $user) {
                 return response()->json(['message' => 'Utilisateur associé introuvable.'], 404);
@@ -347,6 +351,10 @@ class MemberController extends Controller
         $member = $user->member;
         if (!$member) {
             return response()->json(['message' => 'Profil membre introuvable.'], 404);
+        }
+
+        if ($member->status === 'approved') {
+            return response()->json(['message' => 'Dossier validé, modification des documents impossible.'], 403);
         }
 
         $updates = [];
