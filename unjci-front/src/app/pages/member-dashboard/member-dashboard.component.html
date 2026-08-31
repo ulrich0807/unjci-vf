@@ -57,7 +57,7 @@
           <span class="section-label">MES INFORMATIONS</span>
           <h2>Profil personnel</h2>
         </div>
-        <button *ngIf="!editing && membershipStage !== 'approved'" type="button" class="outline-button" (click)="editing = true">
+        <button *ngIf="!editing && member?.status !== 'approved'" type="button" class="outline-button" (click)="editing = true">
           Modifier
         </button>
       </div>
@@ -89,23 +89,56 @@
         <div *ngIf="editing" class="wide" style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
           <h3 style="font-size: 1.05rem; margin-bottom: 8px;">Mise à jour des documents (Optionnel)</h3>
           
-          <label class="upload">
-            <span class="field-label">Nouvelle photo de profil</span>
-            <input type="file" accept="image/jpeg,image/png" (change)="onProfileFileSelected($event, 'photo')">
-            <strong>{{ selectedProfileFiles.photo?.name || 'Choisir une image' }}</strong>
-          </label>
+          <div class="premium-upload">
+            <div class="premium-upload-preview">
+              <img *ngIf="member?.photoDataUrl && !isPdf(member?.photoDataUrl)" [src]="member.photoDataUrl" alt="Photo" />
+              <div class="premium-upload-icon" *ngIf="!member?.photoDataUrl || isPdf(member?.photoDataUrl)">IMG</div>
+            </div>
+            <div class="premium-upload-details">
+              <span class="premium-upload-title">Nouvelle photo de profil</span>
+              <div class="premium-upload-actions">
+                <label class="upload-btn-premium">
+                  <input type="file" accept="image/jpeg,image/png" (change)="onProfileFileSelected($event, 'photo')">
+                  Modifier
+                </label>
+                <span class="selected-file-name" *ngIf="selectedProfileFiles.photo">{{ selectedProfileFiles.photo.name }}</span>
+              </div>
+            </div>
+          </div>
           
-          <label class="upload">
-            <span class="field-label">Nouvelle carte de presse (Recto)</span>
-            <input type="file" accept="image/*,.pdf" (change)="onProfileFileSelected($event, 'pressCardRecto')">
-            <strong>{{ selectedProfileFiles.pressCardRecto?.name || 'Choisir un fichier' }}</strong>
-          </label>
+          <div class="premium-upload">
+            <div class="premium-upload-preview">
+              <img *ngIf="member?.pressCardRectoUrl && !isPdf(member?.pressCardRectoUrl)" [src]="member.pressCardRectoUrl" alt="Carte Recto" />
+              <div class="premium-upload-icon" *ngIf="!member?.pressCardRectoUrl || isPdf(member?.pressCardRectoUrl)">PDF</div>
+            </div>
+            <div class="premium-upload-details">
+              <span class="premium-upload-title">Nouvelle carte de presse (Recto)</span>
+              <div class="premium-upload-actions">
+                <label class="upload-btn-premium">
+                  <input type="file" accept="image/*,.pdf" (change)="onProfileFileSelected($event, 'pressCardRecto')">
+                  Modifier
+                </label>
+                <span class="selected-file-name" *ngIf="selectedProfileFiles.pressCardRecto">{{ selectedProfileFiles.pressCardRecto.name }}</span>
+              </div>
+            </div>
+          </div>
           
-          <label class="upload">
-            <span class="field-label">Nouvelle carte de presse (Verso)</span>
-            <input type="file" accept="image/*,.pdf" (change)="onProfileFileSelected($event, 'pressCardVerso')">
-            <strong>{{ selectedProfileFiles.pressCardVerso?.name || 'Choisir un fichier' }}</strong>
-          </label>
+          <div class="premium-upload">
+            <div class="premium-upload-preview">
+              <img *ngIf="member?.pressCardVersoUrl && !isPdf(member?.pressCardVersoUrl)" [src]="member.pressCardVersoUrl" alt="Carte Verso" />
+              <div class="premium-upload-icon" *ngIf="!member?.pressCardVersoUrl || isPdf(member?.pressCardVersoUrl)">PDF</div>
+            </div>
+            <div class="premium-upload-details">
+              <span class="premium-upload-title">Nouvelle carte de presse (Verso)</span>
+              <div class="premium-upload-actions">
+                <label class="upload-btn-premium">
+                  <input type="file" accept="image/*,.pdf" (change)="onProfileFileSelected($event, 'pressCardVerso')">
+                  Modifier
+                </label>
+                <span class="selected-file-name" *ngIf="selectedProfileFiles.pressCardVerso">{{ selectedProfileFiles.pressCardVerso.name }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div *ngIf="profileError" class="wide error-message" style="margin-top: 16px;">{{ profileError }}</div>
@@ -118,7 +151,7 @@
         </div>
       </form>
 
-      <div *ngIf="editing" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #dce5e0;">
+      <div style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #dce5e0;">
         <h3 style="margin-bottom: 16px; font-size: 1.1rem;">Modifier mon mot de passe</h3>
         <div *ngIf="passwordSaved" class="success-message">Votre mot de passe a été modifié.</div>
         <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
@@ -187,17 +220,37 @@
       
       <form *ngIf="!oldCardsUploaded" [formGroup]="oldCardForm" (ngSubmit)="submitOldCards()">
         <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
-          <label class="upload">
-            <span class="field-label">Ancienne Carte (Recto) <b>*</b></span>
-            <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'recto')">
-            <strong>{{ oldCardForm.value.oldCardRecto || 'Choisir le fichier' }}</strong>
-          </label>
+          <div class="premium-upload">
+            <div class="premium-upload-preview">
+              <div class="premium-upload-icon">PDF</div>
+            </div>
+            <div class="premium-upload-details">
+              <span class="premium-upload-title">Ancienne Carte (Recto) <b>*</b></span>
+              <div class="premium-upload-actions">
+                <label class="upload-btn-premium">
+                  <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'recto')">
+                  Choisir un fichier
+                </label>
+                <span class="selected-file-name">{{ oldCardForm.value.oldCardRecto }}</span>
+              </div>
+            </div>
+          </div>
 
-          <label class="upload">
-            <span class="field-label">Ancienne Carte (Verso) <b>*</b></span>
-            <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'verso')">
-            <strong>{{ oldCardForm.value.oldCardVerso || 'Choisir le fichier' }}</strong>
-          </label>
+          <div class="premium-upload">
+            <div class="premium-upload-preview">
+              <div class="premium-upload-icon">PDF</div>
+            </div>
+            <div class="premium-upload-details">
+              <span class="premium-upload-title">Ancienne Carte (Verso) <b>*</b></span>
+              <div class="premium-upload-actions">
+                <label class="upload-btn-premium">
+                  <input type="file" accept="image/*,.pdf" (change)="onOldCardSelected($event, 'verso')">
+                  Choisir un fichier
+                </label>
+                <span class="selected-file-name">{{ oldCardForm.value.oldCardVerso }}</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div *ngIf="oldCardsError" class="wide error-message" style="margin-top: 1rem;">{{ oldCardsError }}</div>
         

@@ -142,10 +142,12 @@ export class MemberDashboard implements OnInit {
           proposedMemberNumber: data.current_member_number,
           requestType: data.request_type,
           photoDataUrl: data.photo_file_path ? `${environment.storageUrl}/${data.photo_file_path}` : null,
+          pressCardRectoUrl: data.press_card_recto ? `${environment.storageUrl}/${data.press_card_recto}` : null,
+          pressCardVersoUrl: data.press_card_verso ? `${environment.storageUrl}/${data.press_card_verso}` : null,
+          oldCardRectoUrl: data.old_card_recto_path ? `${environment.storageUrl}/${data.old_card_recto_path}` : null,
+          oldCardVersoUrl: data.old_card_verso_path ? `${environment.storageUrl}/${data.old_card_verso_path}` : null,
           paymentPhone: data.payment_phone,
           transactionId: data.transaction_id,
-          old_card_recto_path: data.old_card_recto_path,
-          old_card_verso_path: data.old_card_verso_path,
         };
 
         // 2. On remplit le formulaire de profil
@@ -468,6 +470,11 @@ export class MemberDashboard implements OnInit {
   openProfile(): void {
     this.scrollToSection('profil');
     this.editing = true;
+  }
+
+  isPdf(url: string | null | undefined): boolean {
+    if (!url) return false;
+    return url.toLowerCase().endsWith('.pdf');
   }
 
   logout(): void {

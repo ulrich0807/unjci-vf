@@ -761,30 +761,85 @@ input[readonly] {
     padding: 28px 22px;
   }
 }
-.upload {
+.premium-upload {
   display: flex;
-  flex-direction: column;
-  min-height: 110px;
+  align-items: center;
+  gap: 20px;
   padding: 16px;
+  border: 1px solid #dce5e0;
+  border-radius: 16px;
+  background: #fdfefe;
+  transition: box-shadow .2s ease, border-color .2s ease;
+}
+.premium-upload:hover {
+  border-color: #9ac2b3;
+  box-shadow: 0 8px 24px rgba(15, 55, 42, .06);
+}
+.premium-upload-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f0f6f3;
+  border: 1px solid #dce5e0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #8bbdaa;
-  border-radius: 12px;
-  text-align: center;
-  background: linear-gradient(145deg, #f6fcf9, #edf8f3);
+  flex-shrink: 0;
+}
+.premium-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.premium-upload-icon {
+  font-size: 20px;
+  color: #79a893;
+  font-weight: bold;
+}
+.premium-upload-details {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.premium-upload-title {
+  font-weight: 700;
+  color: #20372d;
+  font-size: 0.95rem;
+}
+.premium-upload-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.upload-btn-premium {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: #edf6f2;
+  color: #075a43;
+  font-size: 0.8rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: .2s ease;
+  border: 1px solid transparent;
+  transition: all .2s ease;
 }
-.upload:hover {
-  border-color: #075a43;
-  background: #eaf8f2;
+.upload-btn-premium:hover {
+  background: #e2f0ea;
+  border-color: #c5dacd;
 }
-.upload input[type="file"] {
+.upload-btn-premium input[type="file"] {
   display: none;
 }
-.upload strong {
-  margin-top: 8px;
-  color: #075a43;
-  font-size: 0.85rem;
-  word-break: break-word;
+.selected-file-name {
+  font-size: 0.8rem;
+  color: #63756c;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
