@@ -85,14 +85,6 @@ export class LoginComponent {
         this.finalizeLogin(userRole, this.pendingReturnUrl);
       },
       error: (error) => {
-          this.router.navigate(['/administration']);
-        } else if (userRole === 'scanner') {
-          this.router.navigate(['/scanner']);
-        } else {
-          this.router.navigate(['/espace-membre']);
-        }
-      },
-      error: (error) => {
         if (error.status === 403 && error.error?.needs_verification) {
           this.router.navigate(['/verifier-email'], {
             state: {
