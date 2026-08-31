@@ -85,9 +85,36 @@
           Fonction
           <input formControlName="functionTitle" [readOnly]="!editing" />
         </label>
-        <div *ngIf="editing" class="form-actions wide">
+        
+        <div *ngIf="editing" class="wide" style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+          <h3 style="font-size: 1.05rem; margin-bottom: 8px;">Mise à jour des documents (Optionnel)</h3>
+          
+          <label class="upload">
+            <span class="field-label">Nouvelle photo de profil</span>
+            <input type="file" accept="image/jpeg,image/png" (change)="onProfileFileSelected($event, 'photo')">
+            <strong>{{ selectedProfileFiles.photo?.name || 'Choisir une image' }}</strong>
+          </label>
+          
+          <label class="upload">
+            <span class="field-label">Nouvelle carte de presse (Recto)</span>
+            <input type="file" accept="image/*,.pdf" (change)="onProfileFileSelected($event, 'pressCardRecto')">
+            <strong>{{ selectedProfileFiles.pressCardRecto?.name || 'Choisir un fichier' }}</strong>
+          </label>
+          
+          <label class="upload">
+            <span class="field-label">Nouvelle carte de presse (Verso)</span>
+            <input type="file" accept="image/*,.pdf" (change)="onProfileFileSelected($event, 'pressCardVerso')">
+            <strong>{{ selectedProfileFiles.pressCardVerso?.name || 'Choisir un fichier' }}</strong>
+          </label>
+        </div>
+
+        <div *ngIf="profileError" class="wide error-message" style="margin-top: 16px;">{{ profileError }}</div>
+
+        <div *ngIf="editing" class="form-actions wide" style="margin-top: 24px;">
           <button type="button" class="cancel-button" (click)="editing = false">Annuler</button>
-          <button type="submit" class="primary-button">Enregistrer</button>
+          <button type="submit" class="primary-button" [disabled]="savingProfile">
+            {{ savingProfile ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
         </div>
       </form>
 

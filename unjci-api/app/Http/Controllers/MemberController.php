@@ -336,6 +336,72 @@ class MemberController extends Controller
         ], 201);
     }
 
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Non authentifié.'], 401);
+        }
+
+        $member = $user->member;
+        if (!$member) {
+            return response()->json(['message' => 'Profil membre introuvable.'], 404);
+        }
+
+        if ($member->status === 'approved') {
+            return response()->json(['message' => 'Dossier validé, modification impossible.'], 403);
+        }
+
+        $validated = $request->validate([
+            'phone' => 'nullable|string|max:20',
+            'personalEmail' => 'nullable|email|max:255',
+            'postalAddress' => 'nullable|string|max:255',
+            'employers' => 'nullable|string|max:255',
+            'functionTitle' => 'nullable|string|max:255',
+            'photoFile' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'pressCardRectoFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'pressCardVersoFile' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ]);
+
+        $updates = [];
+
+        if ($request->filled('phone')) {
+            $updates['phone'] = $validated['phone'];
+        }
+        if ($request->filled('personalEmail')) {
+            $updates['personal_email'] = $validated['personalEmail'];
+            $user->update(['email' => $validated['personalEmail']]);
+        }
+        if ($request->filled('postalAddress')) {
+            $updates['postal_address'] = $validated['postalAddress'];
+        }
+        if ($request->filled('employers')) {
+            $updates['employers'] = $validated['employers'];
+        }
+        if ($request->filled('functionTitle')) {
+            $updates['function_title'] = $validated['functionTitle'];
+        }
+
+        if ($request->hasFile('photoFile')) {
+            $updates['photo_file_path'] = $request->file('photoFile')->store('members/photos', 'public');
+        }
+        if ($request->hasFile('pressCardRectoFile')) {
+            $updates['press_card_recto'] = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'public');
+        }
+        if ($request->hasFile('pressCardVersoFile')) {
+            $updates['press_card_verso'] = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'public');
+        }
+
+        if (count($updates) > 0) {
+            $member->update($updates);
+        }
+
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès.',
+            'data' => $member->fresh()
+        ], 200);
+    }
+
     public function uploadOldCards(Request $request)
     {
         $validated = $request->validate([

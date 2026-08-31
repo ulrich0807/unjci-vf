@@ -43,6 +43,7 @@ Route::get('/storage/{path}', function (string $path) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/member/password', [AuthController::class, 'changePassword']);
     Route::get('/member/profile', [MemberController::class, 'profile']);
+    Route::post('/member/profile/update', [MemberController::class, 'updateProfile']); // Mise à jour profil (infos + fichiers)
     Route::post('/member/payment', [MemberController::class, 'submitPayment']); // <-- Nouvelle route
     Route::post('/member/upload-old-cards', [MemberController::class, 'uploadOldCards']);
 

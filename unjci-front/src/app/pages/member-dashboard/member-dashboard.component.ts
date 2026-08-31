@@ -62,6 +62,11 @@ export class MemberDashboard implements OnInit {
   addingPaymentProof = false;
   paymentSaved = false;
 
+  selectedProfileFiles: { photo?: File; pressCardRecto?: File; pressCardVerso?: File } = {};
+  savingProfile = false;
+  profileError = '';
+
+
   profileForm: FormGroup;
   paymentProofForm: FormGroup;
   passwordForm: FormGroup;
@@ -172,13 +177,59 @@ export class MemberDashboard implements OnInit {
     });
   }
 
+  onProfileFileSelected(event: Event, type: 'photo' | 'pressCardRecto' | 'pressCardVerso'): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      this.selectedProfileFiles[type] = file;
+    }
+  }
+
   saveProfile(): void {
-    this.editing = false;
-    this.saved = true;
-    setTimeout(() => {
-      this.saved = false;
-      this.cdr.detectChanges(); // Rafraîchissement après disparition du message
-    }, 3000);
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
+
+    this.savingProfile = true;
+    this.profileError = '';
+    
+    const session = this.auth.getSession();
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
+    const payload = new FormData();
+
+    const formValues = this.profileForm.getRawValue();
+    Object.keys(formValues).forEach(key => {
+      if (formValues[key]) payload.append(key, formValues[key]);
+    });
+
+    if (this.selectedProfileFiles.photo) payload.append('photoFile', this.selectedProfileFiles.photo);
+    if (this.selectedProfileFiles.pressCardRecto) payload.append('pressCardRectoFile', this.selectedProfileFiles.pressCardRecto);
+    if (this.selectedProfileFiles.pressCardVerso) payload.append('pressCardVersoFile', this.selectedProfileFiles.pressCardVerso);
+
+    this.http.post(`${environment.apiUrl}/member/profile/update`, payload, { headers }).subscribe({
+      next: (res: any) => {
+        this.savingProfile = false;
+        this.editing = false;
+        this.saved = true;
+        this.selectedProfileFiles = {};
+        
+        // Mettre à jour l'affichage avec la nouvelle photo si présente
+        if (res.data?.photo_file_path) {
+          this.member.photoDataUrl = `${environment.storageUrl}/${res.data.photo_file_path}`;
+        }
+        
+        setTimeout(() => {
+          this.saved = false;
+          this.cdr.detectChanges();
+        }, 3000);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.savingProfile = false;
+        this.profileError = err.error?.message || 'Erreur lors de la mise à jour du profil.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   changePassword(): void {
