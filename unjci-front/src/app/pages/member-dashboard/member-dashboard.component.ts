@@ -176,7 +176,8 @@ export class MemberDashboard implements OnInit {
           functionTitle: data.function_title
         });
         
-        this.history = data.payments || [];
+        // On masque les paiements rejetés/annulés de l'historique
+        this.history = (data.payments || []).filter((p: any) => p.status !== 'rejected');
         this.paymentMode = this.resolvePaymentMode(data);
         this.membershipStage = this.resolveMembershipStage(data, this.history);
 
