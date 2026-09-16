@@ -46,9 +46,9 @@ class WavePaymentController extends Controller
         }
 
         if ($member->payments()->where('status', 'pending')->exists()) {
-            return response()->json([
-                'message' => 'Un paiement est déjà en attente de confirmation.',
-            ], 422);
+            // Au lieu de bloquer, on annule les anciens paiements en attente
+            // pour permettre à l'utilisateur de réessayer (ex: solde insuffisant sur Wave)
+            $member->payments()->where('status', 'pending')->update(['status' => 'rejected']);
         }
 
         $isRenewal = $validated['paymentType'] === 'renewal';

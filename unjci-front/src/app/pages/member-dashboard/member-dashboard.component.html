@@ -295,6 +295,11 @@
       <div *ngIf="membershipStage === 'payment_pending'" class="stage-notice pending">
         <strong>Paiement en cours de confirmation</strong>
         <p>Votre paiement de {{ expectedAmount | number:'1.0-0' }} FCFA a été transmis. Vous serez informé dès sa confirmation.</p>
+        <div style="margin-top: 1rem;">
+          <button type="button" class="outline-button" (click)="initiateWavePayment()" [disabled]="savingPayment">
+            {{ savingPayment ? 'Redirection Wave...' : 'Le paiement a échoué ? Réessayer avec Wave' }}
+          </button>
+        </div>
       </div>
 
       <div *ngIf="membershipStage === 'under_review'" class="stage-notice review">
