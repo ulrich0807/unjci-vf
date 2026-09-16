@@ -27,6 +27,12 @@ Route::post('/members/email-verification/send', [MemberController::class, 'sendE
 Route::post('/members/email-verification/verify', [MemberController::class, 'verifyEmailOtp'])
     ->middleware('throttle:6,1');
 // Nouvelle route pour la connexion
+Route::get('/clear-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    return response()->json(['message' => 'Cache vidé avec succès !']);
+});
+
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
