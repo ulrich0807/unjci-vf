@@ -64,7 +64,7 @@ class WavePaymentController extends Controller
         // On crée un enregistrement de paiement "pending"
         $payment = $member->payments()->create([
             'amount' => $amount,
-            'payment_phone' => null, // Remplacé par l'API Wave
+            'payment_phone' => 'Wave', // Placeholder car la colonne n'est pas nullable
             'transaction_id' => 'INIT_'.uniqid(), // ID temporaire remplacé lors du webhook
             'payment_type' => $validated['paymentType'],
             'previous_member_number' => $isRenewal ? $memberNumber : null,
