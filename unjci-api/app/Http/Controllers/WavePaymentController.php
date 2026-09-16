@@ -72,19 +72,30 @@ class WavePaymentController extends Controller
         ]);
 
         $apiKey = config('services.wave.api_key');
+        $signingSecret = config('services.wave.signing_secret');
         
         $frontendUrl = config('app.frontend_url', 'http://localhost:4200');
         $successUrl = $frontendUrl . '/member-dashboard?payment=success&payment_id=' . $payment->id;
         $cancelUrl = $frontendUrl . '/member-dashboard?payment=cancel';
-
-        // Appel de l'API Wave selon la doc officielle (simplifiée ici)
-        $response = Http::withToken($apiKey)->post('https://api.wave.com/v1/checkout/sessions', [
+        
+        $payload = [
             'amount' => $amount,
             'currency' => 'XOF',
             'error_url' => $cancelUrl,
             'success_url' => $successUrl,
             'client_reference' => (string) $payment->id,
-        ]);
+        ];
+        
+        $timestamp = time();
+        $body = json_encode($payload);
+        $signature = hash_hmac('sha256', $timestamp . $body, $signingSecret);
+
+        // Appel de l'API Wave avec signature
+        $response = Http::withToken($apiKey)
+            ->withHeaders([
+                'Wave-Signature' => "t={$timestamp},v1={$signature}"
+            ])
+            ->post('https://api.wave.com/v1/checkout/sessions', $payload);
 
         if ($response->successful()) {
             $data = $response->json();

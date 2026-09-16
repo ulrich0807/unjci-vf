@@ -31,6 +31,7 @@ return [
     'wave' => [
         'api_key' => env('WAVE_API_KEY'),
         'webhook_secret' => env('WAVE_WEBHOOK_SECRET'),
+        'signing_secret' => env('WAVE_SIGNING_SECRET'),
     ],
 
     'slack' => [
