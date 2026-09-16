@@ -31,6 +31,7 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
     ->middleware('throttle:5,1');
+Route::post('/webhooks/wave', [\App\Http\Controllers\WavePaymentController::class, 'webhook']);
 
 // Permet de servir les fichiers du disque public sans lien symbolique serveur.
 Route::get('/storage/{path}', function (string $path) {
@@ -44,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/member/password', [AuthController::class, 'changePassword']);
     Route::get('/member/profile', [MemberController::class, 'profile']);
     Route::post('/member/profile/update', [MemberController::class, 'updateProfile']); // Mise à jour profil (infos + fichiers)
-    Route::post('/member/payment', [MemberController::class, 'submitPayment']); // <-- Nouvelle route
+    Route::post('/member/payment/wave/initiate', [\App\Http\Controllers\WavePaymentController::class, 'initiateCheckout']); // <-- Nouvelle route Wave
     Route::post('/member/upload-old-cards', [MemberController::class, 'uploadOldCards']);
 
     // Routes de l'Administration

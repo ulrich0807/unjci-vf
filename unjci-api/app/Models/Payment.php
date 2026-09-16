@@ -15,6 +15,7 @@ class Payment extends Model
         'previous_member_number',
         'old_member_card_path',
         'status',
+        'checkout_session_id',
     ];
 
     public function member()

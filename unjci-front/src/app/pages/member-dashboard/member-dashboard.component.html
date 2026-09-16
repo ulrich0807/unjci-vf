@@ -1,4 +1,14 @@
 <div class="dashboard-page">
+  <div *ngIf="showPaymentPopup" class="payment-popup-overlay">
+    <div class="payment-popup-modal" [class.success]="paymentResult === 'success'" [class.cancel]="paymentResult === 'cancel'">
+      <h3 *ngIf="paymentResult === 'success'">Paiement Réussi !</h3>
+      <h3 *ngIf="paymentResult === 'cancel'">Paiement Annulé</h3>
+      <p *ngIf="paymentResult === 'success'">Votre paiement a bien été transmis. Sa confirmation est en cours, vous pouvez suivre son état dans l'historique.</p>
+      <p *ngIf="paymentResult === 'cancel'">Vous avez annulé le paiement. Vous pourrez réessayer à tout moment depuis votre espace.</p>
+      <button (click)="closePaymentPopup()" class="primary-button">Fermer</button>
+    </div>
+  </div>
+
   <header class="dashboard-hero">
     <div>
       <span class="kicker">ESPACE MEMBRE</span>
@@ -266,7 +276,7 @@
       <div class="section-head">
         <div>
           <span class="section-label">COTISATION</span>
-          <h2>{{ paymentMode === 'renewal' ? 'Renouveler mon adhésion' : 'Payer mes frais d’adhésion' }}</h2>
+          <h2>{{ paymentMode === 'renewal' ? 'Renouveller mon adhésion' : 'Payer mes frais d’adhésion' }}</h2>
           <p class="payment-intro" *ngIf="paymentActionAvailable && paymentMode === 'adhesion'">
             Effectuez le paiement Wave puis renseignez sa référence. Une fois le paiement confirmé,
             votre dossier sera automatiquement transmis à l’UNJCI pour validation.
@@ -282,21 +292,21 @@
         Votre paiement a bien été transmis. Sa confirmation est en cours.
       </div>
 
-      <div *ngIf="!addingPaymentProof && membershipStage === 'payment_pending'" class="stage-notice pending">
+      <div *ngIf="membershipStage === 'payment_pending'" class="stage-notice pending">
         <strong>Paiement en cours de confirmation</strong>
         <p>Votre paiement de {{ expectedAmount | number:'1.0-0' }} FCFA a été transmis. Vous serez informé dès sa confirmation.</p>
       </div>
 
-      <div *ngIf="!addingPaymentProof && membershipStage === 'under_review'" class="stage-notice review">
+      <div *ngIf="membershipStage === 'under_review'" class="stage-notice review">
         <strong>Dossier en cours de traitement</strong>
         <p>Votre paiement est confirmé. Votre demande est maintenant examinée par l’UNJCI.</p>
       </div>
 
-      <div *ngIf="!addingPaymentProof && paymentActionAvailable" class="payment-options-grid single-option">
+      <div *ngIf="paymentActionAvailable" class="payment-options-grid single-option">
         <article class="payment-option" [class.adhesion-option]="paymentMode === 'adhesion'" [class.renewal-option]="paymentMode === 'renewal'">
           <div class="option-icon">{{ paymentMode === 'renewal' ? 'R' : 'A' }}</div>
           <span class="option-label">{{ paymentMode === 'renewal' ? 'RENOUVELLEMENT' : 'ADHÉSION' }}</span>
-          <h3>{{ paymentMode === 'renewal' ? 'Renouveler mon adhésion' : 'Finaliser ma première adhésion' }}</h3>
+          <h3>{{ paymentMode === 'renewal' ? 'Renouveller mon adhésion' : 'Finaliser ma première adhésion' }}</h3>
           <div class="option-price"><strong>{{ expectedAmount | number:'1.0-0' }}</strong><span>FCFA</span></div>
           <p *ngIf="paymentMode === 'adhesion'">
             Ces frais permettent de transmettre votre nouvelle demande à l’UNJCI pour validation.
@@ -305,36 +315,14 @@
             Le numéro éventuellement déclaré dans votre demande sera vérifié manuellement par l’UNJCI avant de devenir officiel.
           </p>
           <div class="option-actions">
-            <a href="https://pay.wave.com/m/M_ci_1oLobZU1c7N5/c/ci/" target="_blank" rel="noopener" class="wave-button">Payer avec Wave</a>
-            <button type="button" class="outline-button" (click)="startPayment()">Renseigner le paiement</button>
+            <button type="button" class="wave-button" (click)="initiateWavePayment()" [disabled]="savingPayment">
+              {{ savingPayment ? 'Redirection Wave...' : 'Payer avec Wave' }}
+            </button>
           </div>
         </article>
       </div>
 
-      <form *ngIf="addingPaymentProof" [formGroup]="paymentProofForm" (ngSubmit)="savePaymentProof()">
-        <div class="wide proof-missing">
-          <strong>{{ paymentMode === 'renewal' ? 'Renouvellement de l’adhésion' : 'Frais de première adhésion' }}</strong>
-          <p>Montant à payer : <strong>{{ expectedAmount | number:'1.0-0' }} FCFA</strong></p>
-          <a href="https://pay.wave.com/m/M_ci_1oLobZU1c7N5/c/ci/" target="_blank" rel="noopener" class="primary-button" style="display:inline-block; background-color:#1cbed3;">
-            Payer avec Wave
-          </a>
-        </div>
-        <label>
-          Numéro utilisé pour le paiement
-          <input formControlName="paymentPhone" placeholder="+225 00 00 00 00 00" />
-        </label>
-        <label>
-          ID de la transaction
-          <input formControlName="transactionId" placeholder="Ex. CI240731..." />
-        </label>
-        <div *ngIf="paymentError" class="wide error-message">{{ paymentError }}</div>
-        <div class="form-actions wide">
-          <button type="button" class="cancel-button" (click)="cancelPayment()">Annuler</button>
-          <button type="submit" class="primary-button" [disabled]="savingPayment">
-            {{ savingPayment ? 'Transmission...' : 'Transmettre le paiement' }}
-          </button>
-        </div>
-      </form>
+      <div *ngIf="paymentError" class="wide error-message" style="margin-top: 1rem;">{{ paymentError }}</div>
     </section>
 
     <section id="historique" class="content-card history-card" *ngIf="history.length > 0">
@@ -349,7 +337,7 @@
         <div *ngFor="let item of history" class="table-row">
           <span>{{ item.created_at | date:'dd/MM/yyyy' }}</span>
           <span>{{ item.payment_type === 'renewal' ? 'Renouvellement' : 'Adhésion' }}</span>
-          <strong>{{ item.payment_phone }}</strong>
+          <strong>{{ item.payment_phone || 'Wave (Web)' }}</strong>
           <span>{{ item.amount | number:'1.0-0' }} FCFA</span>
           <span class="status" 
                 [class.active]="item.status === 'approved'"

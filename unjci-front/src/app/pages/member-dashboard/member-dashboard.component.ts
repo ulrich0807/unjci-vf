@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -42,6 +42,7 @@ const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; descriptio
 export class MemberDashboard implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
 
@@ -50,6 +51,10 @@ export class MemberDashboard implements OnInit {
   membershipStage: MembershipStage = 'awaiting_payment';
   savingPayment = false;
   paymentError = '';
+  
+  // Résultat du paiement Wave
+  paymentResult: 'success' | 'cancel' | null = null;
+  showPaymentPopup = false;
   
   // 1. On injecte le détecteur de changement
   private cdr = inject(ChangeDetectorRef);
@@ -99,8 +104,7 @@ export class MemberDashboard implements OnInit {
     });
 
     this.paymentProofForm = this.fb.group({
-      paymentPhone: ['', Validators.required],
-      transactionId: ['', Validators.required],
+      // Plus besoin de ces champs pour Wave
     });
 
     this.passwordForm = this.fb.group({
@@ -117,6 +121,19 @@ export class MemberDashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+    this.route.queryParams.subscribe(params => {
+      if (params['payment']) {
+        this.paymentResult = params['payment'];
+        this.showPaymentPopup = true;
+        // Optionnel : nettoyer l'URL
+        this.router.navigate([], { queryParams: { payment: null, payment_id: null }, queryParamsHandling: 'merge' });
+      }
+    });
+  }
+
+  closePaymentPopup(): void {
+    this.showPaymentPopup = false;
+    this.paymentResult = null;
   }
 
   loadProfile(): void {
@@ -284,44 +301,27 @@ export class MemberDashboard implements OnInit {
     this.paymentProofForm.reset();
   }
 
-  savePaymentProof(): void {
+  initiateWavePayment(): void {
     this.paymentError = '';
-    if (this.paymentProofForm.invalid) {
-      this.paymentProofForm.markAllAsTouched();
-      return;
-    }
-
     this.savingPayment = true;
+    
     const session = this.auth.getSession();
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
 
-    const payload = new FormData();
-    payload.append('paymentPhone', this.paymentProofForm.value.paymentPhone || '');
-    payload.append('transactionId', this.paymentProofForm.value.transactionId || '');
-    payload.append('paymentType', this.paymentMode);
-
-    this.http.post(`${environment.apiUrl}/member/payment`, payload, { headers }).subscribe({
+    this.http.post(`${environment.apiUrl}/member/payment/wave/initiate`, { paymentType: this.paymentMode }, { headers }).subscribe({
       next: (res: any) => {
-        this.addingPaymentProof = false;
         this.savingPayment = false;
-        this.paymentSaved = true;
-        
-        // On ajoute directement le nouveau paiement à l'historique visuel
-        this.history.unshift(res.payment);
-        this.membershipStage = 'payment_pending';
-        this.cancelPayment();
-
-        setTimeout(() => {
-          this.paymentSaved = false;
-          this.cdr.detectChanges();
-        }, 4000);
-        
-        this.cdr.detectChanges();
+        if (res.checkout_url) {
+          window.location.href = res.checkout_url;
+        } else {
+          this.paymentError = 'Impossible de récupérer le lien de paiement Wave.';
+        }
       },
       error: (err) => {
-        console.error('Erreur lors de l\'enregistrement', err);
-        this.paymentError = err.error?.message || 'Le paiement n’a pas pu être transmis.';
+        console.error('Erreur lors de l\'initialisation du paiement Wave', err);
+        this.paymentError = err.error?.message || 'Une erreur est survenue lors de la connexion à Wave.';
         this.savingPayment = false;
+        this.cdr.detectChanges();
       }
     });
   }
