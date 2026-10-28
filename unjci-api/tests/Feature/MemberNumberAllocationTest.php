@@ -305,6 +305,72 @@ class MemberNumberAllocationTest extends TestCase
         $this->assertNull($member->fresh()->member_number);
     }
 
+    public function test_approved_member_can_be_reviewed_again_without_losing_card_payment_or_validity(): void
+    {
+        Carbon::setTestNow('2026-10-28 12:00:00');
+        $number = 'UJ26-00991';
+        $member = $this->createLegacyMember($this->legacyUser('review-again@example.test', $number), $number, $number);
+        $this->prepareRenewalReview($member);
+        $member->update([
+            'status' => 'approved', 'approved_at' => now(),
+            'membership_expires_at' => '2027-06-30', 'qr_token' => 'preserved-qr-token',
+        ]);
+        // Une autre tentative de renouvellement ne doit pas masquer le réexamen.
+        $member->payments()->create([
+            'amount' => 5000, 'payment_phone' => 'Wave', 'transaction_id' => 'RETRY-review',
+            'payment_type' => 'renewal', 'status' => 'pending',
+        ]);
+
+        for ($review = 0; $review < 2; $review++) {
+            $this->putJson("/admin/members/{$member->id}/status", ['status' => 'pending'])
+                ->assertOk()->assertJsonPath('member.membership_stage', 'under_review')
+                ->assertJsonPath('member.card_is_valid', false)
+                ->assertJsonPath('member.member_number', $number)
+                ->assertJsonPath('member.qr_token', 'preserved-qr-token');
+            $this->assertSame('2027-06-30', $member->fresh()->membership_expires_at->format('Y-m-d'));
+
+            $this->putJson("/admin/members/{$member->id}/status", ['status' => 'approved'])
+                ->assertOk()->assertJsonPath('member.status', 'approved')
+                ->assertJsonPath('member.card_is_valid', true)
+                ->assertJsonPath('member.member_number', $number);
+            $this->assertSame('2027-06-30', $member->fresh()->membership_expires_at->format('Y-m-d'));
+        }
+        $this->assertSame('members/photos/legacy.png', $member->fresh()->photo_file_path);
+        $this->assertSame($number, $member->user->fresh()->login);
+        $this->assertSame(['approved', 'pending'], $member->payments()->orderBy('id')->pluck('status')->all());
+        $this->assertDatabaseCount('members', 1);
+    }
+
+    public function test_reviewing_a_historical_approved_member_does_not_reactivate_an_expired_card(): void
+    {
+        Carbon::setTestNow('2026-10-28 12:00:00');
+        $number = 'UJ25-00881';
+        $member = $this->createLegacyMember($this->legacyUser('expired-review@example.test', $number), $number, $number);
+        $this->prepareRenewalReview($member);
+        $member->payments()->delete();
+        $member->update([
+            'status' => 'approved', 'application_submitted_at' => null, 'approved_at' => null,
+            'membership_expires_at' => '2026-06-30', 'qr_token' => 'expired-card-qr',
+        ]);
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'pending'])
+            ->assertOk()->assertJsonPath('member.membership_stage', 'under_review');
+        $this->assertNotNull($member->fresh()->application_submitted_at);
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'approved'])
+            ->assertOk()->assertJsonPath('member.card_is_valid', false);
+        $this->assertSame('2026-06-30', $member->fresh()->membership_expires_at->format('Y-m-d'));
+        $this->assertSame(0, $member->payments()->count());
+    }
+
+    public function test_member_cannot_put_own_approved_dossier_under_review(): void
+    {
+        $number = 'UJ26-00992';
+        $member = $this->createLegacyMember($this->legacyUser('forbidden-review@example.test', $number), $number, $number);
+        $member->update(['status' => 'approved']);
+        Sanctum::actingAs($member->user);
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'pending'])->assertForbidden();
+        $this->assertSame('approved', $member->fresh()->status);
+    }
+
     private function prepareRenewalReview(Member $member): void
     {
         Mail::fake();

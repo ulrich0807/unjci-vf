@@ -9,6 +9,7 @@ Inscription → vérification de l’e-mail par OTP → connexion → paiement W
 Les premières adhésions coûtent 10 000 FCFA et les renouvellements 5 000 FCFA.
 Les anciens numéros sont acceptés après contrôle d’unicité et vérification administrative.
 L’administrateur peut rouvrir un dossier rejeté ou générer un nouveau numéro pour un ancien adhérent sans numéro.
+Il peut aussi réexaminer un dossier validé : la carte devient indisponible jusqu’à la nouvelle approbation. Le numéro, les pièces, les paiements et la date d’expiration existante sont conservés ; ce réexamen ne prolonge pas l’adhésion.
 
 ## Configuration
 

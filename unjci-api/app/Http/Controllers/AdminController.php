@@ -229,7 +229,14 @@ class AdminController extends Controller
                 }
 
                 if ($targetStatus === 'pending') {
-                    $member->update(['status' => 'pending', 'approved_at' => null]);
+                    $member->update([
+                        'status' => 'pending',
+                        'approved_at' => null,
+                        // Les adhésions historiques validées peuvent ne pas avoir
+                        // cet horodatage : les remettre directement en examen.
+                        'application_submitted_at' => $member->application_submitted_at
+                            ?: ($member->status === 'approved' || $member->member_number ? now() : null),
+                    ]);
 
                     return $member;
                 }
@@ -286,13 +293,17 @@ class AdminController extends Controller
                 $expiryBase = $member->membership_expires_at && $member->membership_expires_at->isFuture()
                     ? $member->membership_expires_at
                     : Carbon::today();
+                // Réexaminer une carte existante n'est pas un renouvellement payé.
+                $membershipExpiry = $member->member_number && $member->membership_expires_at
+                    ? $member->membership_expires_at
+                    : $expiryBase->copy()->addYear();
 
                 $member->update([
                     'status' => 'approved',
                     'member_number' => $memberNumber,
                     'current_member_number' => $memberNumber,
                     'qr_token' => $member->qr_token ?: Str::random(40),
-                    'membership_expires_at' => $expiryBase->copy()->addYear(),
+                    'membership_expires_at' => $membershipExpiry,
                     'application_submitted_at' => $member->application_submitted_at ?: now(),
                     'approved_at' => now(),
                 ]);

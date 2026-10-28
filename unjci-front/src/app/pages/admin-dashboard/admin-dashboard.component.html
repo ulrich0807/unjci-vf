@@ -351,8 +351,9 @@
                 </small>
               </div>
               <ng-template #noReviewAction>
-                <div class="actions" *ngIf="member.status === 'rejected'; else noAction">
-                  <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'pending')">{{ memberActionInProgress[member.id] ? 'Enregistrement…' : 'Rouvrir le dossier' }}</button>
+                <div class="actions" *ngIf="member.status === 'rejected' || member.status === 'approved'; else noAction">
+                  <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'pending')">{{ memberActionInProgress[member.id] ? 'Enregistrement…' : (member.status === 'approved' ? 'Réexaminer le dossier' : 'Rouvrir le dossier') }}</button>
+                  <small *ngIf="member.status === 'approved'">La carte sera indisponible pendant le réexamen.</small>
                   <small class="error-message" *ngIf="memberActionErrors[member.id]" role="alert">{{ memberActionErrors[member.id] }}</small>
                 </div>
                 <ng-template #noAction><small>Aucune action requise</small></ng-template>

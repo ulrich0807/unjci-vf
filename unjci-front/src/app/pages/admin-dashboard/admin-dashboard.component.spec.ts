@@ -82,6 +82,30 @@ describe('AdminDashboard', () => {
     expect(member.membership_stage).toBe('under_review');
   });
 
+  it('offers a review action for an approved dossier and displays its approval actions afterward', () => {
+    const member = {
+      id: 84, first_name: 'Awa', last_name: 'KOUASSI', personal_email: 'awa@example.test',
+      status: 'approved', membership_stage: 'approved', request_type: 'renewal',
+      member_number: 'UJ26-00084', current_member_number: 'UJ26-00084', created_at: '2026-10-01',
+    };
+    component.members = [member];
+    component.filterMembers();
+    render();
+    const reviewButton = Array.from(fixture.nativeElement.querySelectorAll('button'))
+      .find(button => (button as HTMLButtonElement).textContent?.includes('Réexaminer le dossier')) as HTMLButtonElement;
+    expect(reviewButton).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('La carte sera indisponible pendant le réexamen.');
+    reviewButton.click();
+    const request = httpTesting.expectOne(`${environment.apiUrl}/admin/members/84/status`);
+    expect(request.request.body).toEqual({ status: 'pending' });
+    request.flush({ member: { status: 'pending', membership_stage: 'under_review', member_number: member.member_number } });
+    render();
+    expect(fixture.nativeElement.textContent).toContain('Dossier à valider');
+    expect(fixture.nativeElement.textContent).toContain('Approuver le renouvellement');
+    expect(fixture.nativeElement.textContent).not.toContain('Réexaminer le dossier');
+    expect(fixture.nativeElement.querySelector('input[placeholder="Ancien ou nouveau format"]')).toBeNull();
+  });
+
   it('loads only the sections granted to a secondary administrator', () => {
     sessionStorage.setItem('unjci_session', JSON.stringify({ login: 'media', role: 'media_admin', token: 'media-token' }));
     const limited = TestBed.createComponent(AdminDashboard);

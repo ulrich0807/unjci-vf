@@ -31,6 +31,12 @@ class Member extends Model
             return 'rejected';
         }
 
+        // Une carte remise en examen conserve son numéro et son paiement initial.
+        // Une autre tentative de paiement ne doit pas bloquer son réexamen.
+        if ($this->status === 'pending' && $this->member_number && $this->application_submitted_at !== null) {
+            return 'under_review';
+        }
+
         $payments = $this->relationLoaded('payments')
             ? $this->payments
             : $this->payments()->get(['payments.id', 'payments.status']);
