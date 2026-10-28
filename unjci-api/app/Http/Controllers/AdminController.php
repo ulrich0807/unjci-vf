@@ -253,12 +253,10 @@ class AdminController extends Controller
                 }
 
                 $paymentType = $member->request_type === 'renewal' ? 'renewal' : 'adhesion';
-                $hasConfirmedPayment = $member->payments()
-                    ->where('payment_type', $paymentType)
-                    ->where('status', 'approved')
-                    ->exists();
-
-                if (! $member->member_number && (! $member->application_submitted_at || ! $hasConfirmedPayment)) {
+                // La mise en validation fait foi aussi pour les dossiers historiques :
+                // ils n'ont pas toujours une ligne de paiement typée ni cet horodatage.
+                // Utiliser la même règle que le statut affiché, sans exiger deux traces.
+                if (! $member->member_number && $member->membership_stage !== 'under_review') {
                     throw ValidationException::withMessages([
                         'status' => [sprintf(
                             'Le paiement de %s doit être confirmé avant l’approbation du dossier.',
@@ -295,6 +293,7 @@ class AdminController extends Controller
                     'current_member_number' => $memberNumber,
                     'qr_token' => $member->qr_token ?: Str::random(40),
                     'membership_expires_at' => $expiryBase->copy()->addYear(),
+                    'application_submitted_at' => $member->application_submitted_at ?: now(),
                     'approved_at' => now(),
                 ]);
                 $member->user?->update(['login' => $memberNumber]);

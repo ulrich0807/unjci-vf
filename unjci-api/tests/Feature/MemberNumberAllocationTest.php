@@ -252,6 +252,59 @@ class MemberNumberAllocationTest extends TestCase
         $this->assertNull($member->fresh()->member_number);
     }
 
+    public function test_historical_renewal_already_under_review_can_be_approved_without_a_duplicate_payment_record(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('historical-review@example.test', 'pending-historical-review'), null, null);
+        $this->prepareRenewalReview($member);
+        $member->payments()->delete();
+        $this->assertSame('under_review', $member->fresh()->membership_stage);
+
+        $this->putJson("/admin/members/{$member->id}/status", [
+            'status' => 'approved', 'generateMemberNumber' => true,
+        ])->assertOk()->assertJsonPath('member.status', 'approved');
+        $this->assertNotNull($member->fresh()->member_number);
+        $this->assertSame(0, $member->payments()->count());
+    }
+
+    public function test_confirmed_renewal_without_legacy_submission_timestamp_can_be_approved(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('missing-review-date@example.test', 'pending-no-review-date'), null, null);
+        $this->prepareRenewalReview($member);
+        $member->update(['application_submitted_at' => null]);
+        $this->assertSame('under_review', $member->fresh()->membership_stage);
+
+        $this->putJson("/admin/members/{$member->id}/status", [
+            'status' => 'approved', 'verifiedMemberNumber' => 'ANCIEN / 1998 / 42',
+        ])->assertOk()->assertJsonPath('member.member_number', 'ANCIEN / 1998 / 42');
+        $this->assertNotNull($member->fresh()->application_submitted_at);
+    }
+
+    public function test_legacy_payment_type_does_not_block_a_renewal_already_under_review(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('legacy-payment-type@example.test', 'pending-legacy-type'), null, null);
+        $this->prepareRenewalReview($member);
+        $member->payments()->update(['payment_type' => 'adhesion']);
+        $this->assertSame('under_review', $member->fresh()->membership_stage);
+
+        $this->putJson("/admin/members/{$member->id}/status", [
+            'status' => 'approved', 'generateMemberNumber' => true,
+        ])->assertOk()->assertJsonPath('member.status', 'approved');
+    }
+
+    public function test_unpaid_renewal_cannot_be_approved_or_receive_a_number(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('no-review-no-payment@example.test', 'pending-unpaid-renewal'), null, null);
+        $this->prepareRenewalReview($member);
+        $member->payments()->delete();
+        $member->update(['application_submitted_at' => null]);
+        $this->assertSame('awaiting_payment', $member->fresh()->membership_stage);
+
+        $this->putJson("/admin/members/{$member->id}/status", [
+            'status' => 'approved', 'generateMemberNumber' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->assertNull($member->fresh()->member_number);
+    }
+
     private function prepareRenewalReview(Member $member): void
     {
         Mail::fake();
