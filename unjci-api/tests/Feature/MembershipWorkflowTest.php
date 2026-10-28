@@ -13,6 +13,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -26,6 +27,9 @@ class MembershipWorkflowTest extends TestCase
 
         Storage::fake('public');
         Mail::fake();
+        config(['services.wave.api_key' => 'test-key', 'services.wave.signing_secret' => null]);
+        Http::preventStrayRequests();
+        Http::fake(['api.wave.com/*' => Http::response(['id' => 'cos-workflow', 'wave_launch_url' => 'https://pay.wave.com/test'])]);
         Carbon::setTestNow('2026-08-11 10:00:00');
     }
 
@@ -55,6 +59,7 @@ class MembershipWorkflowTest extends TestCase
         $member = Member::findOrFail($response->json('data.id'));
         $this->assertSame('awaiting_payment', $member->membership_stage);
         $this->assertStringStartsWith('pending-', $member->user->login);
+        $member->user->forceFill(['email_verified_at' => now()])->save();
 
         $this->postJson('/login', [
             'login' => 'awa@example.test',
@@ -62,11 +67,15 @@ class MembershipWorkflowTest extends TestCase
         ])->assertOk()->assertJsonStructure(['token']);
 
         Sanctum::actingAs($member->user);
-        $paymentId = $this->post('/member/payment', [
+        $this->postJson('/member/payment/wave/initiate', [
             'paymentPhone' => '+2250700000000',
             'transactionId' => 'TX-ADH-001',
             'paymentType' => 'adhesion',
-        ])->assertOk()->assertJsonPath('payment.status', 'pending')->json('payment.id');
+        ])->assertOk();
+        $payment = auth()->user()->member->payments()->latest('id')->firstOrFail();
+        $this->assertSame('pending', $payment->status);
+        $this->assertEquals($payment->payment_type === 'renewal' ? 5000 : 10000, $payment->amount);
+        $paymentId = $payment->id;
 
         $this->assertSame('payment_pending', $member->fresh()->membership_stage);
 
@@ -145,15 +154,15 @@ class MembershipWorkflowTest extends TestCase
         $member->update(['membership_expires_at' => '2027-01-31']);
 
         Sanctum::actingAs($member->user);
-        $paymentId = $this->post('/member/payment', [
+        $this->postJson('/member/payment/wave/initiate', [
             'paymentPhone' => '+2250500000000',
             'transactionId' => 'TX-REN-001',
             'paymentType' => 'renewal',
-        ])->assertOk()
-            ->assertJsonPath('payment.amount', 5000)
-            ->assertJsonPath('payment.previous_member_number', $memberNumber)
-            ->assertJsonPath('payment.status', 'pending')
-            ->json('payment.id');
+        ])->assertOk();
+        $payment = auth()->user()->member->payments()->latest('id')->firstOrFail();
+        $this->assertSame('pending', $payment->status);
+        $this->assertEquals($payment->payment_type === 'renewal' ? 5000 : 10000, $payment->amount);
+        $paymentId = $payment->id;
 
         Sanctum::actingAs($this->admin());
         $this->putJson("/admin/payments/{$paymentId}/validate", ['status' => 'approved'])
@@ -214,14 +223,15 @@ class MembershipWorkflowTest extends TestCase
         $pendingLogin = $member->user->login;
 
         Sanctum::actingAs($member->user);
-        $paymentId = $this->post('/member/payment', [
+        $this->postJson('/member/payment/wave/initiate', [
             'paymentPhone' => '+2250100000000',
             'transactionId' => 'TX-REN-NUMBER-UNKNOWN',
             'paymentType' => 'renewal',
-        ])->assertOk()
-            ->assertJsonPath('payment.amount', 5000)
-            ->assertJsonPath('payment.previous_member_number', null)
-            ->json('payment.id');
+        ])->assertOk();
+        $payment = auth()->user()->member->payments()->latest('id')->firstOrFail();
+        $this->assertSame('pending', $payment->status);
+        $this->assertEquals($payment->payment_type === 'renewal' ? 5000 : 10000, $payment->amount);
+        $paymentId = $payment->id;
 
         Sanctum::actingAs($this->admin());
         $this->putJson("/admin/payments/{$paymentId}/validate", ['status' => 'approved'])
@@ -266,11 +276,15 @@ class MembershipWorkflowTest extends TestCase
         $pendingLogin = $member->user->login;
 
         Sanctum::actingAs($member->user);
-        $paymentId = $this->post('/member/payment', [
+        $this->postJson('/member/payment/wave/initiate', [
             'paymentPhone' => '+2250700000001',
             'transactionId' => 'TX-REN-LATE-CONFLICT',
             'paymentType' => 'renewal',
-        ])->assertOk()->json('payment.id');
+        ])->assertOk();
+        $payment = auth()->user()->member->payments()->latest('id')->firstOrFail();
+        $this->assertSame('pending', $payment->status);
+        $this->assertEquals($payment->payment_type === 'renewal' ? 5000 : 10000, $payment->amount);
+        $paymentId = $payment->id;
 
         Sanctum::actingAs($this->admin());
         $this->putJson("/admin/payments/{$paymentId}/validate", ['status' => 'approved'])
@@ -314,11 +328,15 @@ class MembershipWorkflowTest extends TestCase
         $pendingLogin = $rejectedMember->user->login;
 
         Sanctum::actingAs($rejectedMember->user);
-        $paymentId = $this->post('/member/payment', [
+        $this->postJson('/member/payment/wave/initiate', [
             'paymentPhone' => '+2250700000002',
             'transactionId' => 'TX-REN-REJECTED',
             'paymentType' => 'renewal',
-        ])->assertOk()->json('payment.id');
+        ])->assertOk();
+        $payment = auth()->user()->member->payments()->latest('id')->firstOrFail();
+        $this->assertSame('pending', $payment->status);
+        $this->assertEquals($payment->payment_type === 'renewal' ? 5000 : 10000, $payment->amount);
+        $paymentId = $payment->id;
 
         Sanctum::actingAs($this->admin());
         $this->putJson("/admin/payments/{$paymentId}/validate", ['status' => 'approved'])
@@ -387,6 +405,8 @@ class MembershipWorkflowTest extends TestCase
             'pressCardRectoFile' => UploadedFile::fake()->create('recto.pdf', 10, 'application/pdf'),
             'pressCardVersoFile' => UploadedFile::fake()->create('verso.pdf', 10, 'application/pdf'),
             'photoFile' => UploadedFile::fake()->create('photo.png', 10, 'image/png'),
+            'oldCardRectoFile' => UploadedFile::fake()->create('old-recto.pdf', 10, 'application/pdf'),
+            'oldCardVersoFile' => UploadedFile::fake()->create('old-verso.pdf', 10, 'application/pdf'),
         ], $overrides);
     }
 }

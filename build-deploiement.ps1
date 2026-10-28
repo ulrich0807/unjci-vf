@@ -9,7 +9,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot  = "c:\xampp\htdocs\unjci-vf"
+$projectRoot  = $PSScriptRoot
 $deployDir    = "$projectRoot\deploiement-complet-sans-terminal"
 $angularDist  = "$projectRoot\unjci-front\dist\unjci-membership\browser"
 $laravelSrc   = "$projectRoot\unjci-api"
@@ -33,6 +33,9 @@ if (-not (Test-Path "$laravelSrc\vendor\autoload.php")) {
 
 # ── 2. Suppression de l'ancien dossier ──
 if (Test-Path $deployDir) {
+    if ([System.IO.Path]::GetFullPath($deployDir) -ne (Join-Path ([System.IO.Path]::GetFullPath($projectRoot)) 'deploiement-complet-sans-terminal')) {
+        throw 'Dossier de déploiement inattendu.'
+    }
     Write-Host "[1/6] Suppression de l'ancien dossier..." -ForegroundColor Yellow
     Remove-Item -Recurse -Force $deployDir
 }
@@ -54,17 +57,26 @@ Get-ChildItem -Path $angularDist -Directory | Where-Object { $_.Name -notin @("a
 # ── 4. Copie de l'API Laravel (sans .env, sans bootstrap/cache/*.php) ──
 Write-Host "[4/6] Copie du backend Laravel..." -ForegroundColor Green
 $excludeFiles = @(".env", ".phpunit.result.cache")
-$excludeDirs  = @("node_modules", ".git", "tests")
+$excludeDirs  = @("node_modules", ".git", "tests", "storage")
 
 # Utiliser robocopy pour copier efficacement
 robocopy "$laravelSrc" "$deployDir\unjci-api" /E /NFL /NDL /NJH /NJS /NP `
     /XF $excludeFiles `
     /XD ($excludeDirs | ForEach-Object { "$laravelSrc\$_" }) | Out-Null
 
+if ($LASTEXITCODE -ge 8) { throw 'La copie du backend a échoué.' }
+foreach ($taskRuntimeDir in @('app/private', 'app/public', 'framework/cache/data', 'framework/sessions', 'framework/views', 'logs')) {
+    New-Item -ItemType Directory -Path (Join-Path "$deployDir\unjci-api\storage" $taskRuntimeDir) -Force | Out-Null
+}
+Set-Content -LiteralPath "$deployDir\unjci-api\storage\app\public\.htaccess" -Value 'Require all denied'
+
 # Supprimer les fichiers de cache bootstrap (ils sont régénérés automatiquement par Laravel)
 $cacheFiles = @(
     "$deployDir\unjci-api\bootstrap\cache\services.php",
-    "$deployDir\unjci-api\bootstrap\cache\packages.php"
+    "$deployDir\unjci-api\bootstrap\cache\packages.php",
+    "$deployDir\unjci-api\bootstrap\cache\config.php",
+    "$deployDir\unjci-api\bootstrap\cache\routes-v7.php",
+    "$deployDir\unjci-api\bootstrap\cache\events.php"
 )
 foreach ($f in $cacheFiles) {
     if (Test-Path $f) {
@@ -127,6 +139,8 @@ $apiHtaccess = @'
     # Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    RewriteRule ^storage(?:/|$) index.php [L]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d

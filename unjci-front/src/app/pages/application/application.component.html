@@ -78,11 +78,11 @@
           <div class="grid">
             <label *ngIf="isRenewal">
               <span class="field-label">Numéro de membre UNJCI <small>(facultatif)</small></span>
-              <input formControlName="currentMemberNumber" placeholder="Ex. UJ25-00122" maxlength="10" autocomplete="off" (input)="onMemberNumberInput($event)">
+              <input formControlName="currentMemberNumber" placeholder="Votre ancien numéro, quel que soit son format" maxlength="255" autocomplete="off" (input)="onMemberNumberInput($event)">
               <small style="display:block; margin-top:4px; color:#52645c; font-size:12px;">
-                Si vous le connaissez, indiquez-le ici. Il sera réservé temporairement puis vérifié manuellement par l’UNJCI avant validation.
+                Les anciens formats sont acceptés et seront vérifiés par l’UNJCI. Si vous ne connaissez plus votre numéro, laissez ce champ vide : l’administration pourra vous en attribuer un nouveau lors de la validation, sans nouvelle inscription.
               </small>
-              <small class="text-danger" style="display:block; margin-top:4px; font-size:12px;" *ngIf="form.get('currentMemberNumber')?.hasError('pattern') && form.get('currentMemberNumber')?.touched">Format attendu : UJ25-00122.</small>
+              <small class="text-danger" *ngIf="form.get('currentMemberNumber')?.hasError('maxlength')">Le numéro ne doit pas dépasser 255 caractères.</small>
               <small class="text-danger member-number-error" role="alert" style="display:block; margin-top:4px; font-size:12px;" *ngIf="memberNumberError">{{ memberNumberError }}</small>
             </label>
 

@@ -11,6 +11,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use Laravel\Sanctum\Sanctum;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -73,6 +75,7 @@ class MemberNumberAllocationTest extends TestCase
         $this->getJson("/members/by-card/{$memberNumber}")
             ->assertNotFound();
 
+        User::where('email', $email)->update(['email_verified_at' => now()]);
         $this->postJson('/login', [
             'login' => $email,
             'password' => 'password123',
@@ -172,6 +175,96 @@ class MemberNumberAllocationTest extends TestCase
         $this->createLegacyMember($secondUser, $memberNumber, null);
     }
 
+    public function test_legacy_number_is_accepted_and_kept_on_admin_approval(): void
+    {
+        Mail::fake();
+        $number = 'UNJCI / 1998 / 042';
+        $response = $this->submitApplication([
+            'requestType' => 'renewal',
+            'currentMemberNumber' => strtolower($number),
+            'oldCardRectoFile' => UploadedFile::fake()->create('old-recto.pdf', 10),
+            'oldCardVersoFile' => UploadedFile::fake()->create('old-verso.pdf', 10),
+        ])->assertCreated()->assertJsonPath('data.current_member_number', $number);
+        $member = Member::findOrFail($response->json('data.id'));
+        foreach (['photo_file_path', 'press_card_recto', 'old_card_recto_path', 'old_card_verso_path'] as $column) {
+            Storage::disk('local')->assertExists($member->$column);
+            Storage::disk('public')->assertMissing($member->$column);
+        }
+        $this->prepareRenewalReview($member);
+        $this->putJson("/admin/members/{$member->id}/status", [
+            'status' => 'approved', 'verifiedMemberNumber' => $number,
+        ])->assertOk()->assertJsonPath('member.member_number', $number);
+        $this->assertSame($number, $member->user->fresh()->login);
+        $this->submitApplication([
+            'requestType' => 'renewal', 'currentMemberNumber' => $number,
+            'email' => 'duplicate@example.test', 'pressCardNumber' => '2222JP',
+        ])->assertUnprocessable()->assertJsonValidationErrors('currentMemberNumber');
+    }
+
+    public function test_rejected_dossier_can_be_reopened_without_losing_payment_or_documents(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('reopen@example.test', 'pending-reopen'), null, null);
+        $this->prepareRenewalReview($member);
+        $paymentId = $member->payments()->firstOrFail()->id;
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'rejected'])->assertOk();
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'pending'])
+            ->assertOk()->assertJsonPath('member.membership_stage', 'under_review');
+        $this->assertSame('members/photos/legacy.png', $member->fresh()->photo_file_path);
+        $this->assertDatabaseHas('payments', ['id' => $paymentId, 'member_id' => $member->id, 'status' => 'approved']);
+        $this->assertDatabaseCount('members', 1);
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'approved', 'generateMemberNumber' => true])
+            ->assertOk()->assertJsonPath('member.status', 'approved');
+    }
+
+    public function test_missing_legacy_number_can_be_generated_once_without_collisions(): void
+    {
+        Carbon::setTestNow('2026-10-28 10:00:00');
+        $this->legacyUser('reserved@example.test', 'UJ26-00001');
+        $member = $this->createLegacyMember($this->legacyUser('generate@example.test', 'pending-generate'), null, null);
+        $this->prepareRenewalReview($member);
+        $payload = ['status' => 'approved', 'generateMemberNumber' => true];
+        $this->putJson("/admin/members/{$member->id}/status", $payload)
+            ->assertOk()->assertJsonPath('member.member_number', 'UJ26-00002');
+        $expiry = $member->fresh()->membership_expires_at;
+        $this->putJson("/admin/members/{$member->id}/status", $payload)
+            ->assertOk()->assertJsonPath('member.member_number', 'UJ26-00002');
+        $this->assertTrue($expiry->equalTo($member->fresh()->membership_expires_at));
+        $this->assertSame('UJ26-00002', $member->user->fresh()->login);
+    }
+
+    public function test_member_cannot_reopen_own_rejected_dossier(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('forbidden@example.test', 'pending-forbidden'), null, null);
+        $member->update(['status' => 'rejected']);
+        Sanctum::actingAs($member->user);
+        $this->putJson("/admin/members/{$member->id}/status", ['status' => 'pending'])->assertForbidden();
+        $this->assertSame('rejected', $member->fresh()->status);
+    }
+
+    public function test_number_generation_still_requires_confirmed_payment(): void
+    {
+        $member = $this->createLegacyMember($this->legacyUser('unpaid@example.test', 'pending-unpaid'), null, null);
+        $this->prepareRenewalReview($member);
+        $member->payments()->update(['status' => 'pending']);
+        $this->putJson("/admin/members/{$member->id}/status", [
+            'status' => 'approved', 'generateMemberNumber' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->assertNull($member->fresh()->member_number);
+    }
+
+    private function prepareRenewalReview(Member $member): void
+    {
+        Mail::fake();
+        $member->update(['application_submitted_at' => now()]);
+        $member->payments()->create([
+            'amount' => 5000, 'payment_phone' => 'Wave', 'transaction_id' => 'TEST-'.$member->id,
+            'payment_type' => 'renewal', 'status' => 'approved',
+        ]);
+        $admin = $this->legacyUser('reviewer@example.test', 'reviewer');
+        $admin->update(['role' => 'admin']);
+        Sanctum::actingAs($admin);
+    }
+
     private function assertApplicationNumberIsRejected(string $memberNumber, string $email): void
     {
         $this->submitApplication([
@@ -187,6 +280,12 @@ class MemberNumberAllocationTest extends TestCase
 
     private function submitApplication(array $overrides = []): TestResponse
     {
+        if (($overrides['requestType'] ?? '') === 'renewal') {
+            $overrides += [
+                'oldCardRectoFile' => UploadedFile::fake()->create('old-recto.pdf', 10, 'application/pdf'),
+                'oldCardVersoFile' => UploadedFile::fake()->create('old-verso.pdf', 10, 'application/pdf'),
+            ];
+        }
         return $this->withHeader('Accept', 'application/json')
             ->post('/members/apply', $this->validApplicationData($overrides));
     }

@@ -4,11 +4,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
 import { QRCodeComponent } from 'angularx-qrcode'; 
 import { environment } from '../../../environments/environment';
+import { ProtectedFileDirective } from '../../core/protected-file.directive';
 
 @Component({
   selector: 'app-card',
   standalone: true,
-  imports: [CommonModule, QRCodeComponent], 
+  imports: [CommonModule, QRCodeComponent, ProtectedFileDirective],
   templateUrl: './card.component.html',
   styleUrl: './card.component.css'
 })
@@ -31,7 +32,7 @@ export class CardComponent implements OnInit {
         this.cdr.detectChanges();
         // Si le membre a un token, on crée le lien de vérification
         if (this.member.qr_token) {
-          this.qrCodeUrl = `${environment.frontendUrl}/verification/${this.member.qr_token}`;
+          this.qrCodeUrl = `${environment.frontendUrl || window.location.origin}/verification/${this.member.qr_token}`;
         } else {
           // Sinon, on met un texte par défaut pour forcer le QR Code à s'afficher
           this.qrCodeUrl = 'CARTE_EN_ATTENTE_DE_VALIDATION'; 

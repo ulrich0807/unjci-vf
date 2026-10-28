@@ -6,11 +6,20 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Client\ConnectionException;
+use App\Services\PaymentApproval;
+use App\Mail\ApplicationUnderReviewMail;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class WavePaymentController extends Controller
 {
     public function initiateCheckout(Request $request)
     {
+        $apiKey = config('services.wave.api_key');
+        $signingSecret = config('services.wave.signing_secret');
+        abort_unless(filled($apiKey), 503, 'Le paiement Wave est momentanément indisponible.');
         $validated = $request->validate([
             'paymentType' => 'required|in:adhesion,renewal',
         ]);
@@ -71,15 +80,12 @@ class WavePaymentController extends Controller
             'status' => 'pending',
         ]);
 
-        $apiKey = config('services.wave.api_key');
-        $signingSecret = config('services.wave.signing_secret');
-        
         $frontendUrl = config('app.frontend_url', 'http://localhost:4200');
-        $successUrl = $frontendUrl . '/member-dashboard?payment=success&payment_id=' . $payment->id;
-        $cancelUrl = $frontendUrl . '/member-dashboard?payment=cancel';
+        $successUrl = rtrim($frontendUrl, '/') . '/espace-membre?payment=success&payment_id=' . $payment->id;
+        $cancelUrl = rtrim($frontendUrl, '/') . '/espace-membre?payment=cancel';
         
         $payload = [
-            'amount' => $amount,
+            'amount' => (string) $amount,
             'currency' => 'XOF',
             'error_url' => $cancelUrl,
             'success_url' => $successUrl,
@@ -88,14 +94,19 @@ class WavePaymentController extends Controller
         
         $timestamp = time();
         $body = json_encode($payload);
-        $signature = hash_hmac('sha256', $timestamp . $body, $signingSecret);
-
-        // Appel de l'API Wave avec signature
-        $response = Http::withToken($apiKey)
-            ->withHeaders([
-                'Wave-Signature' => "t={$timestamp},v1={$signature}"
-            ])
-            ->post('https://api.wave.com/v1/checkout/sessions', $payload);
+        $client = Http::withToken($apiKey)->connectTimeout(5)->timeout(15);
+        if (filled($signingSecret)) {
+            $signature = hash_hmac('sha256', $timestamp . $body, $signingSecret);
+            $client = $client->withHeaders(['Wave-Signature' => "t={$timestamp},v1={$signature}"]);
+        }
+        try {
+            // Envoyer exactement les octets signés, sans réencoder le JSON.
+            $response = $client->withBody($body, 'application/json')
+                ->post('https://api.wave.com/v1/checkout/sessions');
+        } catch (ConnectionException) {
+            // La requête peut avoir été reçue : conserver le paiement pour réconciliation.
+            return response()->json(['message' => 'Wave ne répond pas. Vérifiez votre historique avant de réessayer.'], 503);
+        }
 
         if ($response->successful()) {
             $data = $response->json();
@@ -113,7 +124,6 @@ class WavePaymentController extends Controller
 
         Log::error('Erreur API Wave Checkout', [
             'status' => $response->status(),
-            'body' => $response->body()
         ]);
 
         return response()->json([
@@ -124,36 +134,48 @@ class WavePaymentController extends Controller
     public function webhook(Request $request)
     {
         $webhookSecret = config('services.wave.webhook_secret');
-        $signature = $request->header('wave-signature');
-
-        // Validation de la signature Wave (Exemple simplifié)
-        // Les détails exacts dépendent de la doc de l'API Wave. 
-        // Généralement : hash_hmac('sha256', $request->getContent(), $webhookSecret)
-        
-        $payload = $request->all();
-        
-        if (isset($payload['type']) && $payload['type'] === 'checkout.session.completed') {
-            $data = $payload['data'];
-            $paymentId = $data['client_reference'] ?? null;
-            $transactionId = $data['transaction_id'] ?? ($data['id'] ?? null); // Fallback
-
-            if ($paymentId) {
-                $payment = Payment::find($paymentId);
-                
-                if ($payment && $payment->status !== 'approved') {
-                    $payment->update([
-                        'status' => 'approved',
-                        'transaction_id' => $transactionId
-                    ]);
-
-                    if ($payment->payment_type === 'adhesion' && !$payment->member->application_submitted_at) {
-                        $payment->member->update([
-                            'application_submitted_at' => now(),
-                        ]);
-                    }
-                    
-                    Log::info('Paiement Wave validé via webhook', ['payment_id' => $payment->id]);
-                }
+        abort_unless(filled($webhookSecret), 503, 'Webhook indisponible.');
+        $parts = explode(',', (string) $request->header('Wave-Signature'));
+        $timestamp = null;
+        $signatures = [];
+        foreach ($parts as $part) {
+            [$key, $value] = array_pad(explode('=', trim($part), 2), 2, '');
+            if ($key === 't' && ctype_digit($value)) {
+                $timestamp = $value;
+            } elseif ($key === 'v1') {
+                $signatures[] = $value;
+            }
+        }
+        abort_unless($timestamp && (int) $timestamp >= now()->timestamp - 300 && (int) $timestamp <= now()->timestamp + 30, 401);
+        $expected = hash_hmac('sha256', $timestamp.$request->getContent(), $webhookSecret);
+        abort_unless(collect($signatures)->contains(fn ($signature) => hash_equals($expected, $signature)), 401);
+        if ($request->input('type') !== 'checkout.session.completed') {
+            return response()->json(['status' => 'ignored']);
+        }
+        $data = $request->validate([
+            'data.client_reference' => 'required|integer',
+            'data.id' => 'required|string',
+            'data.transaction_id' => 'required|string|max:255',
+            'data.currency' => 'required|in:XOF',
+            'data.amount' => ['required', 'regex:/^\d+(?:\.0{1,2})?$/'],
+            'data.checkout_status' => 'required|in:complete',
+            'data.payment_status' => 'required|in:succeeded',
+        ])['data'];
+        $reviewMember = DB::transaction(function () use ($data) {
+            $payment = Payment::lockForUpdate()->findOrFail($data['client_reference']);
+            abort_unless($payment->checkout_session_id === $data['id'] && (int) $payment->amount === (int) $data['amount'], 422);
+            if ($payment->status === 'approved') {
+                abort_unless($payment->transaction_id === $data['transaction_id'], 422);
+                return;
+            }
+            $payment->update(['status' => 'approved', 'transaction_id' => $data['transaction_id']]);
+            return app(PaymentApproval::class)->apply($payment);
+        }, 3);
+        if ($reviewMember) {
+            try {
+                Mail::to($reviewMember->personal_email)->send(new ApplicationUnderReviewMail($reviewMember));
+            } catch (Throwable $exception) {
+                report($exception);
             }
         }
 

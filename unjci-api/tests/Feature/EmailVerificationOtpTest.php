@@ -62,15 +62,15 @@ class EmailVerificationOtpTest extends TestCase
         $this->assertNull($user->fresh()->email_verified_at);
     }
 
-    public function test_email_verification_is_optional_for_access_to_the_payment_area(): void
+    public function test_email_verification_is_required_before_login(): void
     {
         $pending = $this->pendingUser();
 
         $this->postJson('/login', ['login' => $pending->email, 'password' => 'password123'])
-            ->assertOk()
-            ->assertJsonStructure(['token']);
+            ->assertForbidden()->assertJsonPath('needs_verification', true);
 
         $historical = $this->createUser('historical@example.test', 'UJ25-00002', '0002JP');
+        $historical->forceFill(['email_verified_at' => now()])->save();
         $this->postJson('/login', ['login' => $historical->login, 'password' => 'password123'])
             ->assertOk()
             ->assertJsonStructure(['token']);

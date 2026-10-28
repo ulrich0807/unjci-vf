@@ -212,7 +212,7 @@ export class ApplicationComponent implements OnInit {
 
   onMemberNumberInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const value = input.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 10);
+    const value = input.value.toUpperCase().slice(0, 255);
     input.value = value;
     this.memberNumberError = '';
     this.form.controls.currentMemberNumber.setValue(value);
@@ -363,7 +363,7 @@ export class ApplicationComponent implements OnInit {
   constructor() {
     if (this.isRenewal) {
       this.form.controls.currentMemberNumber.setValidators([
-        Validators.pattern(/^UJ\d{2}-\d{5}$/),
+        Validators.maxLength(255),
       ]);
     } else {
       this.form.controls.currentMemberNumber.clearValidators();

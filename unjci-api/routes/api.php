@@ -7,7 +7,7 @@ use App\Http\Controllers\MemberController; // <-- N'oublie pas l'import !
 use App\Http\Controllers\PressMediaController;
 use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\MemberFileController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -18,7 +18,7 @@ Route::get('/health', function () {
 });
 
 Route::get('/press-media', [PressMediaController::class, 'index']);
-Route::post('/contact', [ContactController::class, 'store']);
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 
 Route::get('/members/by-card/{cardNumber}', [MemberController::class, 'findByCardNumber']);
 Route::post('/members/apply', [MemberController::class, 'store']);
@@ -26,28 +26,16 @@ Route::post('/members/email-verification/send', [MemberController::class, 'sendE
     ->middleware('throttle:3,1');
 Route::post('/members/email-verification/verify', [MemberController::class, 'verifyEmailOtp'])
     ->middleware('throttle:6,1');
-// Nouvelle route pour la connexion
-Route::get('/clear-cache', function() {
-    \Illuminate\Support\Facades\Artisan::call('config:clear');
-    \Illuminate\Support\Facades\Artisan::call('cache:clear');
-    return response()->json(['message' => 'Cache vidé avec succès !']);
-});
-
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
     ->middleware('throttle:5,1');
 Route::post('/webhooks/wave', [\App\Http\Controllers\WavePaymentController::class, 'webhook']);
 
-// Permet de servir les fichiers du disque public sans lien symbolique serveur.
-Route::get('/storage/{path}', function (string $path) {
-    abort_unless(Storage::disk('public')->exists($path), 404);
-
-    return response()->file(Storage::disk('public')->path($path));
-})->where('path', '.*');
-
 // Routes privées (nécessitent d'être connecté)
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/storage/{path}', [MemberFileController::class, 'show'])->where('path', '.*');
     Route::put('/member/password', [AuthController::class, 'changePassword']);
     Route::get('/member/profile', [MemberController::class, 'profile']);
     Route::post('/member/profile/update', [MemberController::class, 'updateProfile']); // Mise à jour profil (infos + fichiers)

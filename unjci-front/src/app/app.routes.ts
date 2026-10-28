@@ -23,7 +23,7 @@ export const routes: Routes = [
   { path: 'verifier-email', component: EmailVerificationComponent },
   { path: 'renouvellement', component: RenewalEntryComponent },
   { path: 'espace-membre', component: MemberDashboard, canActivate: [roleGuard('member')] },
-  { path: 'ma-carte', component: CardComponent },
+  { path: 'ma-carte', component: CardComponent, canActivate: [roleGuard('member')] },
   { path: 'nous-contacter', component: ContactComponent },
   {
     path: 'administration',

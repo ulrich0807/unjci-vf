@@ -14,6 +14,7 @@ class Member extends Model
 
     protected $appends = [
         'membership_stage',
+        'card_is_valid',
     ];
 
     protected $casts = [
@@ -52,6 +53,15 @@ class Member extends Model
         }
 
         return 'awaiting_payment';
+    }
+
+    public function getCardIsValidAttribute(): bool
+    {
+        return $this->status === 'approved'
+            && filled($this->member_number)
+            && filled($this->qr_token)
+            && $this->membership_expires_at !== null
+            && $this->membership_expires_at->endOfDay()->gte(now());
     }
 
     public function user()

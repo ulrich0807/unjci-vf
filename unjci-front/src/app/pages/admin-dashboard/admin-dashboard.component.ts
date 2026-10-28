@@ -1,5 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, Pipe, PipeTransform } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
+import { ProtectedFileDirective } from '../../core/protected-file.directive';
 import {
   ManagedPressMedia,
   PressCompanyRecord,
@@ -40,22 +40,10 @@ interface LoginAuditResponse {
   };
 }
 
-@Pipe({
-  name: 'safeUrl',
-  standalone: true
-})
-export class SafeUrlPipe implements PipeTransform {
-  constructor(private sanitizer: DomSanitizer) {}
-  transform(url: string): SafeResourceUrl {
-    if (!url) return '';
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-  }
-}
-
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeUrlPipe],
+  imports: [CommonModule, FormsModule, ProtectedFileDirective],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css'
 })
@@ -81,7 +69,6 @@ export class AdminDashboard implements OnInit {
   private http = inject(HttpClient);
   private pressMediaService = inject(PressMediaService);
   private cdr = inject(ChangeDetectorRef);
-  private sanitizer = inject(DomSanitizer);
 
   members: any[] = [];
   filteredMembers: any[] = [];
@@ -172,15 +159,10 @@ export class AdminDashboard implements OnInit {
 
   previewDocumentUrl: string | null = null;
   previewDocumentTitle: string = '';
+  private permissionSectionsLoaded = false;
 
   ngOnInit(): void {
     this.loadAdminData();
-    this.loadPressCompanies();
-    this.loadLoginAudits();
-    this.loadContacts();
-    if (this.hasPermission('manage_admins')) {
-      this.loadAdmins();
-    }
   }
 
   hasPermission(permission: string): boolean {
@@ -208,6 +190,13 @@ export class AdminDashboard implements OnInit {
         this.members = data.members || [];
         this.allPayments = data.payments || [];
         this.myPermissions = data.myPermissions || [];
+        if (!this.permissionSectionsLoaded) {
+          this.permissionSectionsLoaded = true;
+          if (this.hasPermission('manage_media')) this.loadPressCompanies();
+          if (this.hasPermission('view_login_history')) this.loadLoginAudits();
+          if (this.hasPermission('view_contact_requests')) this.loadContacts();
+          if (this.hasPermission('manage_admins')) this.loadAdmins();
+        }
 
         for (const member of this.members) {
           if (this.memberNumberDrafts[member.id] === undefined) {
@@ -291,8 +280,7 @@ export class AdminDashboard implements OnInit {
   onVerifiedMemberNumberInput(member: any, rawValue: string): void {
     this.memberNumberDrafts[member.id] = String(rawValue || '')
       .toUpperCase()
-      .replace(/[^A-Z0-9-]/g, '')
-      .slice(0, 10);
+      .slice(0, 255);
     delete this.memberActionErrors[member.id];
   }
 
@@ -326,20 +314,22 @@ export class AdminDashboard implements OnInit {
   }
 
   // Mettre à jour le statut d'un membre (Appel API)
-  setStatus(member: any, newStatus: string): void {
+  setStatus(member: any, newStatus: string, generateMemberNumber = false): void {
     const session = this.auth.getSession();
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
-    const payload: { status: string; verifiedMemberNumber?: string } = { status: newStatus };
+    const payload: { status: string; verifiedMemberNumber?: string; generateMemberNumber?: boolean } = { status: newStatus };
     delete this.memberActionErrors[member.id];
 
-    if (newStatus === 'approved' && this.requiresMemberNumberVerification(member)) {
+    if (newStatus === 'approved' && generateMemberNumber) {
+      payload.generateMemberNumber = true;
+    } else if (newStatus === 'approved' && this.requiresMemberNumberVerification(member)) {
       const verifiedMemberNumber = String(this.memberNumberDrafts[member.id] || '').trim();
       if (!verifiedMemberNumber) {
         this.memberActionErrors[member.id] = 'Le numéro UNJCI vérifié est requis pour approuver ce renouvellement.';
         return;
       }
-      if (!/^UJ\d{2}-\d{5}$/.test(verifiedMemberNumber)) {
-        this.memberActionErrors[member.id] = 'Format attendu : UJ25-00122.';
+      if (verifiedMemberNumber.length > 255) {
+        this.memberActionErrors[member.id] = 'Le numéro ne doit pas dépasser 255 caractères.';
         return;
       }
 

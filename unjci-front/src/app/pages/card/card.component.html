@@ -1,13 +1,13 @@
 <!-- C'est ce conteneur qui va empêcher le contenu de passer sous le menu -->
 <div class="carte-page-wrapper">
 
-  <div class="card-container" *ngIf="member && member.status === 'approved'; else notActive">
+  <div class="card-container" *ngIf="member?.card_is_valid; else notActive">
     <div class="unjci-id-card">
       <!-- Section Photo avec les carrés oranges -->
       <div class="photo-wrapper">
         <div class="orange-square top-right"></div>
         <div class="photo-frame">
-          <img *ngIf="member.photo_file_path" [src]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
+          <img *ngIf="member.photo_file_path" [protectedSrc]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
           <span *ngIf="!member.photo_file_path">photo</span>
         </div>
         <div class="orange-square bottom-left"></div>
@@ -35,7 +35,7 @@
   <ng-template #notActive>
     <!-- J'ai ajouté un peu de style CSS dans la classe ci-dessous pour que le message soit plus joli -->
     <div class="not-active-msg alert-box">
-      <p>Votre carte n'est pas encore disponible ou votre compte est en attente de validation.</p>
+      <p>Votre carte est expirée ou votre adhésion est en attente de validation.</p>
     </div>
   </ng-template>
 

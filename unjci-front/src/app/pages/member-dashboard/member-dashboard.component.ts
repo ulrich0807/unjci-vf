@@ -5,6 +5,7 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { ProtectedFileDirective } from '../../core/protected-file.directive';
 
 type PaymentMode = 'adhesion' | 'renewal';
 type MembershipStage = 'awaiting_payment' | 'payment_pending' | 'under_review' | 'approved' | 'rejected';
@@ -35,7 +36,7 @@ const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; descriptio
 @Component({
   selector: 'app-member-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective],
   templateUrl: './member-dashboard.component.html',
   styleUrl: './member-dashboard.component.css'
 })

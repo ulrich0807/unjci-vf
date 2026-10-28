@@ -15,7 +15,8 @@ class ContactController extends Controller
         abort_unless($request->user()?->hasPermission('view_contact_requests'), 403, 'Accès non autorisé.');
 
         // Admin only
-        $perPage = $request->query('perPage', 10);
+        $validated = $request->validate(['perPage' => 'sometimes|integer|min:1|max:100']);
+        $perPage = $validated['perPage'] ?? 10;
         $contacts = Contact::orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json($contacts);
@@ -31,8 +32,8 @@ class ContactController extends Controller
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:50',
             'subject' => 'required|string|max:255',
-            'message' => 'required|string|min:10',
-            'consent' => 'required|boolean',
+            'message' => 'required|string|min:10|max:10000',
+            'consent' => 'required|accepted',
         ]);
 
         $contact = Contact::create([

@@ -21,7 +21,7 @@
       
       <div class="member-profile">
         <div class="avatar">
-           <img *ngIf="member.photo_file_path" [src]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
+           <img *ngIf="member.photo_file_path" [protectedSrc]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
            <span *ngIf="!member.photo_file_path">{{member.first_name?.[0]}}{{member.last_name?.[0]}}</span>
         </div>
         <h3>{{ member.last_name | uppercase }} {{ member.first_name }}</h3>
@@ -38,8 +38,8 @@
           <strong class="text-green">Actif</strong>
         </div>
         <div class="detail-item full-width">
-          <small>Email personnel</small>
-          <strong>{{ member.personal_email }}</strong>
+          <small>Valable jusqu’au</small>
+          <strong>{{ member.membership_expires_at | date:'dd/MM/yyyy' }}</strong>
         </div>
       </div>
       

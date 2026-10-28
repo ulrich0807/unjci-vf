@@ -59,6 +59,12 @@ export class AuthService {
   }
 
   logout(): void {
+    const token = this.getSession()?.token;
+    if (token) {
+      this.http.post(`${this.apiUrl}/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).subscribe({ error: () => {} });
+    }
     sessionStorage.removeItem(this.key);
   }
 }

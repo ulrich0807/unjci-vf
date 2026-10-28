@@ -9,6 +9,7 @@ describe('ApplicationComponent', () => {
   let routeQueryParams: Record<string, string>;
 
   beforeEach(() => {
+    TestBed.resetTestingModule();
     routeQueryParams = {};
     TestBed.configureTestingModule({
       imports: [ApplicationComponent],
@@ -195,11 +196,11 @@ describe('ApplicationComponent', () => {
     httpTesting.expectNone(request => request.url.includes('/members/by-card/'));
   });
 
-  it('validates the optional member number format without performing a lookup', () => {
+  it('accepts a legacy member number without performing a lookup', () => {
     routeQueryParams['type'] = 'renewal';
     const component = TestBed.createComponent(ApplicationComponent).componentInstance;
     component.form.patchValue({
-      currentMemberNumber: 'INVALIDE',
+      currentMemberNumber: 'UNJCI / 1998 / 042',
       firstName: 'Awa',
       lastName: 'KOUASSI',
       birthDate: '01/01/1990',
@@ -209,8 +210,8 @@ describe('ApplicationComponent', () => {
 
     component.nextStep();
 
-    expect(component.currentStep).toBe(1);
-    expect(component.form.controls.currentMemberNumber.hasError('pattern')).toBe(true);
+    expect(component.currentStep).toBe(2);
+    expect(component.form.controls.currentMemberNumber.valid).toBe(true);
     httpTesting.expectNone(request => request.url.includes('/members/by-card/'));
   });
 
@@ -234,7 +235,7 @@ describe('ApplicationComponent', () => {
     expect(component.form.controls.alias.hasError('minlength')).toBe(true);
     expect(component.form.controls.birthDate.hasError('invalidDate')).toBe(true);
     expect(component.form.controls.birthPlace.hasError('minimumLetters')).toBe(true);
-    expect(component.form.controls.phone.hasError('phoneFormat')).toBe(true);
+    expect(component.form.controls.phone.hasError('phoneDigitCount')).toBe(true);
     expect(component.form.controls.alias.touched).toBe(true);
   });
 
@@ -247,7 +248,7 @@ describe('ApplicationComponent', () => {
       alias: '  La Plume  ',
       birthDate: '  29/02/2000  ',
       birthPlace: '  Abidjan   2  ',
-      phone: '  +225 (07) 08-09-10-11  ',
+      phone: '  0708091011  ',
     }, { emitEvent: false });
 
     component.nextStep();
@@ -258,7 +259,7 @@ describe('ApplicationComponent', () => {
     expect(component.form.controls.alias.value).toBe('La Plume');
     expect(component.form.controls.birthDate.value).toBe('29/02/2000');
     expect(component.form.controls.birthPlace.value).toBe('Abidjan 2');
-    expect(component.form.controls.phone.value).toBe('+225 (07) 08-09-10-11');
+    expect(component.form.controls.phone.value).toBe('0708091011');
   });
 
   it('validates calendar dates, future dates and phone digit boundaries synchronously', () => {
@@ -282,16 +283,16 @@ describe('ApplicationComponent', () => {
     birthDate.setValue('29/02/2024');
     expect(birthDate.valid).toBe(true);
 
-    phone.setValue('01 23 45 67');
+    phone.setValue('01 23 45 67 89');
     expect(phone.valid).toBe(true);
-    phone.setValue('+225 (01) 23-45-67-89');
+    phone.setValue('01 23-45-67-89');
     expect(phone.valid).toBe(true);
     phone.setValue('1234567');
     expect(phone.hasError('phoneDigitCount')).toBe(true);
     phone.setValue('1234567890123456');
     expect(phone.hasError('phoneDigitCount')).toBe(true);
-    phone.setValue('+225 (01 23-45-67-89');
-    expect(phone.hasError('phoneFormat')).toBe(true);
+    phone.setValue('01 23-45-67');
+    expect(phone.hasError('phoneDigitCount')).toBe(true);
   });
 
   it('formats the birth date and requires a complete email domain', () => {
@@ -408,11 +409,8 @@ describe('ApplicationComponent', () => {
     expect(body.has('currentMemberNumber')).toBe(false);
     submitRequest.flush({ success: true });
 
-    expect(navigate).toHaveBeenCalledWith(['/login'], {
-      queryParams: {
-        inscription: 'reussie',
-        email: 'journaliste@example.com',
-      },
+    expect(navigate).toHaveBeenCalledWith(['/verifier-email'], {
+      state: { email: 'journaliste@example.com', sendOtp: true },
     });
   });
 

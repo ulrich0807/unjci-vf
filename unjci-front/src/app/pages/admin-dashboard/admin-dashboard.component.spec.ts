@@ -11,6 +11,11 @@ describe('AdminDashboard', () => {
   let component: AdminDashboard;
   let httpTesting: HttpTestingController;
 
+  function render(): void {
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+  }
+
   const initialCompanies: PressCompanyRecord[] = [
     {
       id: 1,
@@ -27,6 +32,7 @@ describe('AdminDashboard', () => {
   ];
 
   beforeEach(async () => {
+    TestBed.resetTestingModule();
     sessionStorage.setItem('unjci_session', JSON.stringify({
       login: 'admin',
       role: 'admin',
@@ -41,7 +47,7 @@ describe('AdminDashboard', () => {
     httpTesting = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AdminDashboard);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    render();
 
     httpTesting.expectOne(`${environment.apiUrl}/admin/dashboard`).flush({ members: [], payments: [] });
     httpTesting.expectOne(`${environment.apiUrl}/admin/press-companies`).flush({ data: initialCompanies });
@@ -50,19 +56,61 @@ describe('AdminDashboard', () => {
     expect(loginAuditRequest.request.params.get('search')).toBe('');
     expect(loginAuditRequest.request.params.get('status')).toBe('all');
     expect(loginAuditRequest.request.params.get('page')).toBe('1');
-    expect(loginAuditRequest.request.params.get('perPage')).toBe('25');
+    expect(loginAuditRequest.request.params.get('perPage')).toBe('10');
     loginAuditRequest.flush({
       data: [],
-      meta: { currentPage: 1, lastPage: 1, perPage: 25, total: 0 },
+      meta: { currentPage: 1, lastPage: 1, perPage: 10, total: 0 },
     });
+    httpTesting.expectOne(request => request.url === `${environment.apiUrl}/admin/contacts`).flush({ data: [] });
+    httpTesting.expectOne(`${environment.apiUrl}/admin/admins`).flush([]);
     await fixture.whenStable();
-    fixture.detectChanges();
+    render();
   });
 
   afterEach(() => {
     httpTesting.verify();
     sessionStorage.clear();
     vi.restoreAllMocks();
+  });
+
+  it('reopens a rejected dossier through the existing status endpoint', () => {
+    const member = { id: 81, status: 'rejected', membership_stage: 'rejected' };
+    component.setStatus(member, 'pending');
+    const request = httpTesting.expectOne(`${environment.apiUrl}/admin/members/81/status`);
+    expect(request.request.body).toEqual({ status: 'pending' });
+    request.flush({ member: { status: 'pending', membership_stage: 'under_review' } });
+    expect(member.membership_stage).toBe('under_review');
+  });
+
+  it('loads only the sections granted to a secondary administrator', () => {
+    sessionStorage.setItem('unjci_session', JSON.stringify({ login: 'media', role: 'media_admin', token: 'media-token' }));
+    const limited = TestBed.createComponent(AdminDashboard);
+    limited.detectChanges();
+    httpTesting.expectOne(`${environment.apiUrl}/admin/dashboard`).flush({
+      members: [], payments: [], myPermissions: ['manage_media'],
+    });
+    httpTesting.expectOne(`${environment.apiUrl}/admin/press-companies`).flush({ data: [] });
+    httpTesting.expectNone(request => request.url === `${environment.apiUrl}/admin/login-audits`);
+    httpTesting.expectNone(request => request.url === `${environment.apiUrl}/admin/contacts`);
+    httpTesting.expectNone(`${environment.apiUrl}/admin/admins`);
+    limited.destroy();
+  });
+
+  it('explicitly requests a generated number for an unnumbered renewal', () => {
+    const member = { id: 82, request_type: 'renewal', member_number: null };
+    component.setStatus(member, 'approved', true);
+    const request = httpTesting.expectOne(`${environment.apiUrl}/admin/members/82/status`);
+    expect(request.request.body).toEqual({ status: 'approved', generateMemberNumber: true });
+    request.flush({ member: { member_number: 'UJ26-00001' } });
+  });
+
+  it('preserves legacy number separators during approval', () => {
+    const member = { id: 83, request_type: 'renewal', member_number: null };
+    component.onVerifiedMemberNumberInput(member, 'unjci / 1998 / 042');
+    component.setStatus(member, 'approved');
+    const request = httpTesting.expectOne(`${environment.apiUrl}/admin/members/83/status`);
+    expect(request.request.body.verifiedMemberNumber).toBe('UNJCI / 1998 / 042');
+    request.flush({ member: { member_number: 'UNJCI / 1998 / 042' } });
   });
 
   it('loads and displays the companies managed from the database', () => {
@@ -89,7 +137,7 @@ describe('AdminDashboard', () => {
     component.search = 'uj25-00122';
     component.filterMembers();
     expect(component.filteredMembers).toEqual([member]);
-    fixture.detectChanges();
+    render();
 
     const numberInput = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
       'input[aria-label="Numéro UNJCI vérifié pour Awa KOUASSI"]',
@@ -148,7 +196,7 @@ describe('AdminDashboard', () => {
       { errors: { verifiedMemberNumber: ['Ce numéro est déjà utilisé par un autre membre.'] } },
       { status: 422, statusText: 'Unprocessable Content' },
     );
-    fixture.detectChanges();
+    render();
 
     expect(component.memberActionErrors[member.id]).toBe('Ce numéro est déjà utilisé par un autre membre.');
     expect(fixture.nativeElement.textContent).toContain('Ce numéro est déjà utilisé par un autre membre.');
@@ -211,7 +259,7 @@ describe('AdminDashboard', () => {
     expect(component.paginatedPressCompanies.some(company => company.name === 'ENTREPRISE 11')).toBe(false);
 
     component.goToCatalogPage(2);
-    fixture.detectChanges();
+    render();
 
     expect(component.catalogPage).toBe(2);
     expect(component.paginatedPressCompanies.map(company => company.name)).toEqual([
@@ -229,7 +277,7 @@ describe('AdminDashboard', () => {
     expect(component.catalogPage).toBe(2);
 
     component.onCatalogSearchChange('ENTREPRISE 12');
-    fixture.detectChanges();
+    render();
 
     expect(component.catalogPage).toBe(1);
     expect(component.filteredPressCompanies.map(company => company.name)).toEqual(['ENTREPRISE 12']);
@@ -262,15 +310,15 @@ describe('AdminDashboard', () => {
     expect(filteredRequest.request.params.get('search')).toBe('awa@example.ci');
     expect(filteredRequest.request.params.get('status')).toBe('failure');
     expect(filteredRequest.request.params.get('page')).toBe('1');
-    expect(filteredRequest.request.params.get('perPage')).toBe('25');
+    expect(filteredRequest.request.params.get('perPage')).toBe('10');
     filteredRequest.flush({
       data: [failedAudit],
-      meta: { currentPage: 1, lastPage: 2, perPage: 25, total: 26 },
+      meta: { currentPage: 1, lastPage: 2, perPage: 10, total: 11 },
     });
 
     expect(component.loginAudits).toEqual([failedAudit]);
     expect(component.loginAuditFirstItem).toBe(1);
-    expect(component.loginAuditLastItem).toBe(25);
+    expect(component.loginAuditLastItem).toBe(10);
 
     component.goToLoginAuditPage(2);
 
@@ -280,14 +328,14 @@ describe('AdminDashboard', () => {
     expect(nextPageRequest.request.params.get('page')).toBe('2');
     nextPageRequest.flush({
       data: [failedAudit],
-      meta: { currentPage: 2, lastPage: 2, perPage: 25, total: 26 },
+      meta: { currentPage: 2, lastPage: 2, perPage: 10, total: 11 },
     });
 
-    fixture.detectChanges();
+    render();
 
     expect(component.loginAuditPage).toBe(2);
-    expect(component.loginAuditFirstItem).toBe(26);
-    expect(component.loginAuditLastItem).toBe(26);
+    expect(component.loginAuditFirstItem).toBe(11);
+    expect(component.loginAuditLastItem).toBe(11);
     expect(fixture.nativeElement.textContent).toContain('awa@example.ci');
     expect(fixture.nativeElement.textContent).toContain('Échouée');
     expect(fixture.nativeElement.textContent).toContain('Identifiant ou mot de passe incorrect');
@@ -324,12 +372,12 @@ describe('AdminDashboard', () => {
     };
     latestRequest.flush({
       data: [latestAudit],
-      meta: { currentPage: 1, lastPage: 1, perPage: 25, total: 1 },
+      meta: { currentPage: 1, lastPage: 1, perPage: 10, total: 1 },
     });
 
     olderRequest.flush({
       data: [{ ...latestAudit, id: 61, login: 'stale-attempt', success: true, reason: null }],
-      meta: { currentPage: 1, lastPage: 1, perPage: 25, total: 1 },
+      meta: { currentPage: 1, lastPage: 1, perPage: 10, total: 1 },
     });
 
     expect(component.loginAudits).toEqual([latestAudit]);

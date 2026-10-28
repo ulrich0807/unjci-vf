@@ -101,7 +101,7 @@ class MemberController extends Controller
             'currentMemberNumber' => [
                 $existingMember ? 'required' : 'nullable',
                 'string',
-                'regex:/^UJ\d{2}-\d{5}$/',
+                'max:255',
                 Rule::unique('members', 'member_number')->ignore($existingMember?->id),
                 Rule::unique('members', 'current_member_number')->ignore($existingMember?->id),
                 Rule::unique('users', 'login')->ignore($existingMember?->user?->id),
@@ -150,7 +150,6 @@ class MemberController extends Controller
             'email.email' => 'L’adresse e-mail doit être valide.',
             'email.max' => 'L’adresse e-mail ne doit pas dépasser 255 caractères.',
             'email.regex' => 'L’adresse e-mail doit être au format nom@domaine.com.',
-            'currentMemberNumber.regex' => 'Le numéro de membre UNJCI doit respecter le format UJ25-00122.',
             'currentMemberNumber.unique' => 'Ce numéro de membre UNJCI est déjà utilisé par un autre dossier.',
             'requestType.max' => 'Le type de demande ne doit pas dépasser 255 caractères.',
             'professionalStatus.max' => 'Le statut professionnel ne doit pas dépasser 255 caractères.',
@@ -213,19 +212,19 @@ class MemberController extends Controller
             $oldCardVersoPath = $existingMember->old_card_verso_path;
 
             if ($request->hasFile('pressCardRectoFile')) {
-                $pressCardRectoPath = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'public');
+                $pressCardRectoPath = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'local');
             }
             if ($request->hasFile('pressCardVersoFile')) {
-                $pressCardVersoPath = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'public');
+                $pressCardVersoPath = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'local');
             }
             if ($request->hasFile('oldCardRectoFile')) {
-                $oldCardRectoPath = $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'public');
+                $oldCardRectoPath = $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'local');
             }
             if ($request->hasFile('oldCardVersoFile')) {
-                $oldCardVersoPath = $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'public');
+                $oldCardVersoPath = $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'local');
             }
             if ($request->hasFile('photoFile')) {
-                $photoPath = $request->file('photoFile')->store('members/photos', 'public');
+                $photoPath = $request->file('photoFile')->store('members/photos', 'local');
             }
 
             $existingMember->update([
@@ -263,11 +262,11 @@ class MemberController extends Controller
             ]);
         }
 
-        $pressCardRectoPath = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'public');
-        $pressCardVersoPath = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'public');
-        $oldCardRectoPath = $request->hasFile('oldCardRectoFile') ? $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'public') : null;
-        $oldCardVersoPath = $request->hasFile('oldCardVersoFile') ? $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'public') : null;
-        $photoPath = $request->file('photoFile')->store('members/photos', 'public');
+        $pressCardRectoPath = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'local');
+        $pressCardVersoPath = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'local');
+        $oldCardRectoPath = $request->hasFile('oldCardRectoFile') ? $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'local') : null;
+        $oldCardVersoPath = $request->hasFile('oldCardVersoFile') ? $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'local') : null;
+        $photoPath = $request->file('photoFile')->store('members/photos', 'local');
 
         try {
             $member = DB::transaction(function () use ($validated, $pressCardRectoPath, $pressCardVersoPath, $oldCardRectoPath, $oldCardVersoPath, $photoPath, $submittedMemberNumber) {
@@ -383,13 +382,13 @@ class MemberController extends Controller
         }
 
         if ($request->hasFile('photoFile')) {
-            $updates['photo_file_path'] = $request->file('photoFile')->store('members/photos', 'public');
+            $updates['photo_file_path'] = $request->file('photoFile')->store('members/photos', 'local');
         }
         if ($request->hasFile('pressCardRectoFile')) {
-            $updates['press_card_recto'] = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'public');
+            $updates['press_card_recto'] = $request->file('pressCardRectoFile')->store('members/press_cards_recto', 'local');
         }
         if ($request->hasFile('pressCardVersoFile')) {
-            $updates['press_card_verso'] = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'public');
+            $updates['press_card_verso'] = $request->file('pressCardVersoFile')->store('members/press_cards_verso', 'local');
         }
 
         if (count($updates) > 0) {
@@ -426,11 +425,11 @@ class MemberController extends Controller
         $updates = [];
 
         if ($request->hasFile('oldCardRectoFile')) {
-            $updates['old_card_recto_path'] = $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'public');
+            $updates['old_card_recto_path'] = $request->file('oldCardRectoFile')->store('members/old_cards_recto', 'local');
         }
 
         if ($request->hasFile('oldCardVersoFile')) {
-            $updates['old_card_verso_path'] = $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'public');
+            $updates['old_card_verso_path'] = $request->file('oldCardVersoFile')->store('members/old_cards_verso', 'local');
         }
 
         if (count($updates) > 0) {
@@ -694,7 +693,7 @@ class MemberController extends Controller
 
         $isRenewal = $validated['paymentType'] === 'renewal';
         $oldMemberCardPath = $request->file('oldMemberCardFile')
-            ? $request->file('oldMemberCardFile')->store('members/old_member_cards', 'public')
+            ? $request->file('oldMemberCardFile')->store('members/old_member_cards', 'local')
             : null;
 
         $payment = $member->payments()->create([

@@ -88,6 +88,7 @@ class LoginAuditTest extends TestCase
     public function test_pending_member_email_login_is_audited(): void
     {
         $user = $this->makePendingMember();
+        $user->forceFill(['email_verified_at' => now()])->save();
 
         $this->postJson('/login', [
             'login' => $user->email,

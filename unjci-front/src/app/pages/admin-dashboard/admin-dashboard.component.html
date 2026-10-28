@@ -118,7 +118,7 @@
               <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 2px;">{{ company.media.length }} média{{ company.media.length > 1 ? 's' : '' }}</div>
             </div>
           </button>
-          
+
           <div class="catalog-company-actions" style="display: flex; gap: 8px; align-items: center;">
             <span class="status" [class.active]="company.isActive" [class.pending]="!company.isActive" style="margin-right: 8px;">
               {{ company.isActive ? 'Active' : 'Inactivée' }}
@@ -150,7 +150,7 @@
 
         <div class="catalog-media-list" *ngIf="expandedCompanyIds.has(company.id)">
           <div class="catalog-media-row" *ngFor="let media of company.media" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-top: 1px solid #f1f5f9;">
-            
+
             <div *ngIf="editingMediaId !== media.id" style="display: flex; gap: 12px; align-items: center; width: 100%; justify-content: space-between;">
               <div style="display: flex; gap: 12px; align-items: center;">
                 <strong style="color: #334155; font-size: 0.95rem;">{{ media.name }}</strong>
@@ -257,7 +257,7 @@
             <td>
               <ng-container *ngIf="payment.payment_type === 'renewal'; else noOldCard">
                 <small>{{ payment.previous_member_number }}</small><br>
-                <a *ngIf="payment.old_member_card_path" [href]="getPhotoUrl(payment.old_member_card_path)" target="_blank">Voir la carte</a>
+                <a *ngIf="payment.old_member_card_path" [protectedHref]="getPhotoUrl(payment.old_member_card_path)" target="_blank">Voir la carte</a>
               </ng-container>
               <ng-template #noOldCard>—</ng-template>
             </td>
@@ -307,7 +307,7 @@
             <td>
               <div class="member-cell">
                 <div class="avatar">
-                  <img *ngIf="member.photo_file_path" [src]="getPhotoUrl(member.photo_file_path)" alt="" />
+                  <img *ngIf="member.photo_file_path" [protectedSrc]="getPhotoUrl(member.photo_file_path)" alt="" />
                   <span *ngIf="!member.photo_file_path">{{member.first_name[0]}}{{member.last_name[0]}}</span>
                 </div>
                 <div>
@@ -334,8 +334,8 @@
                   <small>Numéro UNJCI vérifié</small>
                   <input
                     type="text"
-                    maxlength="10"
-                    placeholder="UJ25-00122"
+                    maxlength="255"
+                    placeholder="Ancien ou nouveau format"
                     [value]="memberNumberDrafts[member.id]"
                     (input)="onVerifiedMemberNumberInput(member, $any($event.target).value)"
                     [attr.aria-label]="'Numéro UNJCI vérifié pour ' + member.first_name + ' ' + member.last_name"
@@ -345,11 +345,18 @@
                   {{ memberActionInProgress[member.id] ? 'Enregistrement…' : approvalActionLabel(member) }}
                 </button>
                 <button class="terminate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'rejected')">Rejeter</button>
+                <button class="validate" *ngIf="requiresMemberNumberVerification(member) && !memberNumberDrafts[member.id]?.trim()" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'approved', true)">Générer un nouveau numéro et approuver</button>
                 <small class="error-message" *ngIf="memberActionErrors[member.id]" role="alert">
                   {{ memberActionErrors[member.id] }}
                 </small>
               </div>
-              <ng-template #noReviewAction><small>Aucune action requise</small></ng-template>
+              <ng-template #noReviewAction>
+                <div class="actions" *ngIf="member.status === 'rejected'; else noAction">
+                  <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'pending')">{{ memberActionInProgress[member.id] ? 'Enregistrement…' : 'Rouvrir le dossier' }}</button>
+                  <small class="error-message" *ngIf="memberActionErrors[member.id]" role="alert">{{ memberActionErrors[member.id] }}</small>
+                </div>
+                <ng-template #noAction><small>Aucune action requise</small></ng-template>
+              </ng-template>
             </td>
           </tr>
         </tbody>
@@ -420,7 +427,7 @@
             <td><code>{{ p.transaction_id }}</code></td>
             <td><strong>{{ p.amount | number:'1.0-0' }} FCFA</strong></td>
             <td>
-              <span class="status" 
+              <span class="status"
                     [class.active]="p.status === 'approved'"
                     [class.pending]="p.status === 'pending'">
                 {{ p.status === 'approved' ? 'Approuvé' : (p.status === 'pending' ? 'En attente' : 'Refusé') }}
@@ -437,7 +444,7 @@
         <button class="login-audit-button secondary" (click)="goToPaymentPage(paymentPage + 1)" [disabled]="paymentPage >= paymentLastPage">Suivant</button>
       </div>
     </div>
-    
+
     <ng-template #emptyPayments>
       <div class="empty">
         <h3>Aucun paiement trouvé</h3>
@@ -457,68 +464,68 @@
         <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #1e293b;">Détails de l'adhérent</h2>
         <button class="close-button" (click)="closeMemberDetails()" style="background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer;">✕</button>
       </div>
-      
+
       <div class="modal-body" style="padding: 0 24px 24px 24px;">
         <!-- MODE LECTURE -->
         <div class="details-grid" *ngIf="!isEditingMember" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
-          
+
           <div class="detail-group">
             <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 4px;">Nom complet</small>
             <strong style="color: #1e293b; font-size: 1rem; font-weight: 600;">{{ selectedMember.last_name | uppercase }} {{ selectedMember.first_name }}</strong>
           </div>
-          
+
           <div class="detail-group">
             <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 4px;">Email</small>
             <strong style="color: #1e293b; font-size: 1rem; font-weight: 600;">{{ selectedMember.personal_email }}</strong>
           </div>
-          
+
           <div class="detail-group">
             <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 4px;">Téléphone</small>
             <strong style="color: #1e293b; font-size: 1rem; font-weight: 600;">{{ selectedMember.phone }}</strong>
           </div>
-          
+
           <div class="detail-group">
             <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 4px;">Entreprise / Média</small>
             <strong style="color: #1e293b; font-size: 1rem; font-weight: 600;">{{ selectedMember.employers }} <ng-container *ngIf="selectedMember.media_name">({{ selectedMember.media_name }})</ng-container></strong>
           </div>
-          
+
           <div class="detail-group">
             <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 4px;">Fonction</small>
             <strong style="color: #1e293b; font-size: 1rem; font-weight: 600;">{{ selectedMember.function_title }}</strong>
           </div>
-          
+
           <div class="detail-group">
             <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 4px;">Numéro CIJP</small>
             <strong style="color: #1e293b; font-size: 1rem; font-weight: 600;">{{ selectedMember.press_card_number }}</strong>
           </div>
         </div>
-        
+
         <div *ngIf="!isEditingMember" class="detail-group documents-group" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0; padding-bottom: 24px; border-bottom: 1px solid #e2e8f0;">
           <small style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; display: block; margin-bottom: 16px;">Documents fournis</small>
           <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-            
+
             <!-- Photo d'identité -->
             <div *ngIf="selectedMember.photo_file_path" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.photo_file_path, 'Photo d\'identité')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
               <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
-                <img *ngIf="!isPdf(selectedMember.photo_file_path)" [src]="getPhotoUrl(selectedMember.photo_file_path)" style="width: 100%; height: 100%; object-fit: cover;">
+                <img *ngIf="!isPdf(selectedMember.photo_file_path)" [protectedSrc]="getPhotoUrl(selectedMember.photo_file_path)" style="width: 100%; height: 100%; object-fit: cover;">
                 <svg *ngIf="isPdf(selectedMember.photo_file_path)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               </div>
               <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Photo d'identité</span>
             </div>
-            
+
             <!-- Carte CIJP (Recto) -->
             <div *ngIf="selectedMember.press_card_recto" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.press_card_recto, 'Carte CIJP (Recto)')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
               <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
-                <img *ngIf="!isPdf(selectedMember.press_card_recto)" [src]="getPhotoUrl(selectedMember.press_card_recto)" style="width: 100%; height: 100%; object-fit: cover;">
+                <img *ngIf="!isPdf(selectedMember.press_card_recto)" [protectedSrc]="getPhotoUrl(selectedMember.press_card_recto)" style="width: 100%; height: 100%; object-fit: cover;">
                 <svg *ngIf="isPdf(selectedMember.press_card_recto)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               </div>
               <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Carte CIJP (Recto)</span>
             </div>
-            
+
             <!-- Carte CIJP (Verso) -->
             <div *ngIf="selectedMember.press_card_verso" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.press_card_verso, 'Carte CIJP (Verso)')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
               <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
-                <img *ngIf="!isPdf(selectedMember.press_card_verso)" [src]="getPhotoUrl(selectedMember.press_card_verso)" style="width: 100%; height: 100%; object-fit: cover;">
+                <img *ngIf="!isPdf(selectedMember.press_card_verso)" [protectedSrc]="getPhotoUrl(selectedMember.press_card_verso)" style="width: 100%; height: 100%; object-fit: cover;">
                 <svg *ngIf="isPdf(selectedMember.press_card_verso)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               </div>
               <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Carte CIJP (Verso)</span>
@@ -527,7 +534,7 @@
             <!-- Ancienne Carte (Recto) -->
             <div *ngIf="selectedMember.old_card_recto_path" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.old_card_recto_path, 'Ancienne Carte (Recto)')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
               <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
-                <img *ngIf="!isPdf(selectedMember.old_card_recto_path)" [src]="getPhotoUrl(selectedMember.old_card_recto_path)" style="width: 100%; height: 100%; object-fit: cover;">
+                <img *ngIf="!isPdf(selectedMember.old_card_recto_path)" [protectedSrc]="getPhotoUrl(selectedMember.old_card_recto_path)" style="width: 100%; height: 100%; object-fit: cover;">
                 <svg *ngIf="isPdf(selectedMember.old_card_recto_path)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               </div>
               <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Ancienne Carte (Recto)</span>
@@ -536,7 +543,7 @@
             <!-- Ancienne Carte (Verso) -->
             <div *ngIf="selectedMember.old_card_verso_path" class="doc-thumbnail" (click)="openDocumentPreview(selectedMember.old_card_verso_path, 'Ancienne Carte (Verso)')" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; text-align: center;">
               <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; background: #f8fafc;">
-                <img *ngIf="!isPdf(selectedMember.old_card_verso_path)" [src]="getPhotoUrl(selectedMember.old_card_verso_path)" style="width: 100%; height: 100%; object-fit: cover;">
+                <img *ngIf="!isPdf(selectedMember.old_card_verso_path)" [protectedSrc]="getPhotoUrl(selectedMember.old_card_verso_path)" style="width: 100%; height: 100%; object-fit: cover;">
                 <svg *ngIf="isPdf(selectedMember.old_card_verso_path)" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
               </div>
               <span style="font-size: 0.8rem; font-weight: 600; color: #1e293b;">Ancienne Carte (Verso)</span>
@@ -579,7 +586,7 @@
           </div>
           <div class="form-row">
             <label>Média <input type="text" name="mediaName" [(ngModel)]="editMemberData.mediaName" required></label>
-            <label>Type de demande 
+            <label>Type de demande
               <select name="requestType" [(ngModel)]="editMemberData.requestType" required>
                 <option value="adhesion">Adhésion</option>
                 <option value="renewal">Renouvellement</option>
@@ -588,7 +595,7 @@
           </div>
           <div class="form-row">
             <label>Fonction <input type="text" name="functionTitle" [(ngModel)]="editMemberData.functionTitle" required></label>
-            <label>Type de média 
+            <label>Type de média
               <select name="mediaType" [(ngModel)]="editMemberData.mediaType" required>
                 <option value="Écrit">Écrit</option>
                 <option value="Numérique">Numérique</option>
@@ -600,7 +607,7 @@
             <label>Expiration CIJP <input type="date" name="pressCardExpiry" [(ngModel)]="editMemberData.pressCardExpiry" required></label>
           </div>
           <div class="form-row">
-            <label>N° Adhérent Proposé (UJXX-XXXXX) <input type="text" name="currentMemberNumber" [(ngModel)]="editMemberData.currentMemberNumber"></label>
+            <label>N° adhérent proposé (anciens formats acceptés) <input type="text" maxlength="255" name="currentMemberNumber" [(ngModel)]="editMemberData.currentMemberNumber"></label>
           </div>
 
           <div class="edit-messages">
@@ -728,7 +735,7 @@
         <p>Gérez les comptes d'administration et créez des accès media.</p>
       </div>
     </div>
-    
+
     <div class="catalog-create-grid" style="margin-bottom: 2rem;">
       <form class="catalog-form edit-form" (ngSubmit)="storeAdmin()">
         <div class="catalog-form-title">
@@ -739,7 +746,7 @@
         </div>
         <div class="catalog-message success-message" *ngIf="newAdminSuccess" role="status">{{ newAdminSuccess }}</div>
         <div class="catalog-message error-message" *ngIf="newAdminError" role="alert">{{ newAdminError }}</div>
-        
+
         <div class="form-row">
           <label>
             Nom complet
@@ -833,7 +840,7 @@
   <div class="modal-overlay" *ngIf="adminToEditPermissions" (click)="closeEditPermissions()" style="z-index: 9999; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
     <div class="modal-content" (click)="$event.stopPropagation()" style="background: white; padding: 24px; border-radius: 12px; width: 100%; max-width: 500px;">
       <h3 style="margin-top: 0; margin-bottom: 16px;">Habilitations : {{ adminToEditPermissions.name }}</h3>
-      
+
       <div class="catalog-message success-message" *ngIf="editPermissionsSuccess" role="status">{{ editPermissionsSuccess }}</div>
       <div class="catalog-message error-message" *ngIf="editPermissionsError" role="alert">{{ editPermissionsError }}</div>
 
@@ -870,7 +877,7 @@
             </label>
           </div>
         </div>
-        
+
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <button type="button" class="catalog-button secondary" (click)="closeEditPermissions()">Annuler</button>
           <button type="submit" class="catalog-button primary" [disabled]="updatingPermissions">
@@ -885,7 +892,7 @@
   <div class="modal-overlay" *ngIf="adminToReset" (click)="closeResetPassword()" style="z-index: 9999; background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
     <div class="modal-content" (click)="$event.stopPropagation()" style="background: white; padding: 24px; border-radius: 12px; width: 100%; max-width: 400px;">
       <h3 style="margin-top: 0; margin-bottom: 16px;">Mot de passe : {{ adminToReset.name }}</h3>
-      
+
       <div class="catalog-message success-message" *ngIf="resetPasswordSuccess" role="status">{{ resetPasswordSuccess }}</div>
       <div class="catalog-message error-message" *ngIf="resetPasswordError" role="alert">{{ resetPasswordError }}</div>
 
@@ -898,7 +905,7 @@
           Confirmer nouveau mot de passe
           <input type="password" name="resetConfirm" [(ngModel)]="resetPasswordForm.confirmPassword" required />
         </label>
-        
+
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <button type="button" class="catalog-button secondary" (click)="closeResetPassword()">Annuler</button>
           <button type="submit" class="catalog-button primary" [disabled]="resettingPassword || !resetPasswordForm.password || !resetPasswordForm.confirmPassword">
@@ -916,7 +923,7 @@
         <h2>Sécurité</h2>
       </div>
     </div>
-    
+
     <div class="catalog-message success-message" *ngIf="changePasswordSuccess" role="status">{{ changePasswordSuccess }}</div>
     <div class="catalog-message error-message" *ngIf="changePasswordError" role="alert">{{ changePasswordError }}</div>
 
@@ -950,17 +957,17 @@
     <h3 style="color: white; margin: 0; font-weight: 500; font-size: 1.25rem;">{{ previewDocumentTitle }}</h3>
     <button (click)="closeDocumentPreview()" style="background: none; border: none; color: white; font-size: 2rem; cursor: pointer; padding: 0 10px; line-height: 1;">&times;</button>
   </div>
-  
+
   <div class="document-container" (click)="$event.stopPropagation()" style="width: 100%; max-width: 900px; height: 80vh; background: #1e293b; border-radius: 12px; overflow: hidden; display: flex; justify-content: center; align-items: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
     <!-- Si c'est un PDF (on utilise un iframe/embed) -->
-    <iframe *ngIf="isPdf(previewDocumentUrl)" 
-            [src]="previewDocumentUrl | safeUrl" 
+    <iframe *ngIf="isPdf(previewDocumentUrl)"
+            [protectedSrc]="previewDocumentUrl"
             style="width: 100%; height: 100%; border: none;">
     </iframe>
-    
+
     <!-- Si c'est une image -->
-    <img *ngIf="!isPdf(previewDocumentUrl)" 
-         [src]="previewDocumentUrl" 
+    <img *ngIf="!isPdf(previewDocumentUrl)"
+         [protectedSrc]="previewDocumentUrl"
          style="max-width: 100%; max-height: 100%; object-fit: contain;">
   </div>
 </div>

@@ -54,7 +54,7 @@ class AuthController extends Controller
             }
 
             // 4. Génération du Token de sécurité
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('auth_token', ['*'], now()->addHours(8))->plainTextToken;
             $this->recordLoginAudit($request, $identifier, true, null, $user);
 
             // 5. On renvoie les infos exactes qu'Angular attend !
@@ -126,7 +126,7 @@ class AuthController extends Controller
 
         $temporaryPassword = Str::password(12, symbols: false);
         DB::transaction(function () use ($user, $temporaryPassword) {
-            $user->forceFill(['password' => Hash::make($temporaryPassword)])->save();
+            $user->forceFill(['password' => Hash::make($temporaryPassword), 'must_change_password' => true])->save();
             Mail::to($user->email)->send(new TemporaryPasswordMail($user, $temporaryPassword));
             $user->tokens()->delete();
         });
@@ -148,17 +148,17 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        if (in_array($user->role, ['admin', 'media_admin'])) {
-            if (!$user->must_change_password) {
-                abort(403, 'Vous ne pouvez plus modifier votre mot de passe après la première connexion.');
-            }
-        }
-
         $user->forceFill([
             'password' => Hash::make($validated['password']),
             'must_change_password' => false,
         ])->save();
 
         return response()->json(['message' => 'Votre mot de passe a été modifié.']);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()?->delete();
+        return response()->json(['message' => 'Déconnexion effectuée.']);
     }
 }

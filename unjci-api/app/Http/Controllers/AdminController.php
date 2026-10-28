@@ -38,12 +38,14 @@ class AdminController extends Controller
             abort(403, 'Accès non autorisé.');
         }
 
-        $members = Member::with('payments')->orderBy('created_at', 'desc')->get();
-
-        // On récupère TOUS les paiements (du plus récent au plus ancien)
-        $payments = Payment::with('member')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $user = $request->user();
+        $canReadPayments = $user->hasPermission('manage_payments') || $user->hasPermission('view_payment_history');
+        $members = $user->hasPermission('manage_members')
+            ? Member::query()->when($canReadPayments, fn ($query) => $query->with('payments'))->latest()->get()
+            : [];
+        $payments = $canReadPayments
+            ? Payment::with('member:id,first_name,last_name,member_number,current_member_number,request_type')->latest()->get()
+            : [];
 
         return response()->json([
             'members' => $members,
@@ -209,17 +211,17 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|in:pending,approved,rejected',
-            'verifiedMemberNumber' => ['nullable', 'string', 'regex:/^UJ\d{2}-\d{5}$/'],
-        ], [
-            'verifiedMemberNumber.regex' => 'Le numéro de membre UNJCI doit respecter le format UJ25-00122.',
+            'verifiedMemberNumber' => ['nullable', 'string', 'max:255'],
+            'generateMemberNumber' => ['sometimes', 'boolean'],
         ]);
 
         $targetStatus = $validated['status'];
         $verifiedMemberNumber = $validated['verifiedMemberNumber'] ?? null;
+        $generateMemberNumber = $validated['generateMemberNumber'] ?? false;
         $sendApprovalEmail = false;
 
         try {
-            $member = DB::transaction(function () use ($id, $targetStatus, $verifiedMemberNumber, &$sendApprovalEmail) {
+            $member = DB::transaction(function () use ($id, $targetStatus, $verifiedMemberNumber, $generateMemberNumber, &$sendApprovalEmail) {
                 $member = Member::with('user')->lockForUpdate()->findOrFail($id);
 
                 if ($member->status === $targetStatus) {
@@ -268,10 +270,11 @@ class AdminController extends Controller
                 if ($member->member_number) {
                     $memberNumber = $member->member_number;
                 } elseif ($member->request_type === 'renewal') {
-                    // L'administrateur doit renvoyer explicitement le numéro qu'il
-                    // a contrôlé. Une simple approbation ne suffit pas à promouvoir
-                    // automatiquement la proposition enregistrée par le demandeur.
-                    $memberNumber = $verifiedMemberNumber;
+                    // Confirmer l'ancien numéro contrôlé ou demander explicitement
+                    // un nouveau numéro lorsque l'adhérent ne connaît plus le sien.
+                    $memberNumber = $generateMemberNumber
+                        ? $this->memberNumbers->next()
+                        : $verifiedMemberNumber;
                     if (! $memberNumber) {
                         throw ValidationException::withMessages([
                             'verifiedMemberNumber' => ['Renseignez le numéro UNJCI vérifié avant d’approuver ce renouvellement.'],
@@ -334,7 +337,7 @@ class AdminController extends Controller
             'pressCardNumber' => 'required|string',
             'pressCardExpiry' => 'required|date',
             'requestType' => 'required|in:adhesion,renewal',
-            'currentMemberNumber' => 'nullable|string|regex:/^UJ\d{2}-\d{5}$/',
+            'currentMemberNumber' => 'nullable|string|max:255',
         ]);
 
         $member->update([
@@ -413,30 +416,9 @@ class AdminController extends Controller
                 return $payment;
             }
 
-            if ($payment->payment_type === 'renewal' && $member->member_number) {
-                $memberNumber = $member->member_number;
-                $expiryBase = $member->membership_expires_at && $member->membership_expires_at->isFuture()
-                    ? $member->membership_expires_at
-                    : Carbon::today();
-                $member->update([
-                    'status' => 'approved',
-                    'member_number' => $memberNumber,
-                    'current_member_number' => $memberNumber,
-                    'qr_token' => $member->qr_token ?: Str::random(40),
-                    'membership_expires_at' => $expiryBase->copy()->addYear(),
-                    'approved_at' => $member->approved_at ?: now(),
-                ]);
-
-                return $payment;
-            }
-
-            if (! $member->application_submitted_at) {
-                $member->update([
-                    'status' => 'pending',
-                    'application_submitted_at' => now(),
-                ]);
-                $sendUnderReviewEmail = true;
-            }
+            $reviewMember = app(\App\Services\PaymentApproval::class)->apply($payment);
+            $sendUnderReviewEmail = $reviewMember !== null;
+            $member = $reviewMember ?? $member;
 
             return $payment;
         }, 3);
@@ -494,10 +476,11 @@ class AdminController extends Controller
         }
 
         $member = Member::where('qr_token', $token)->firstOrFail();
+        abort_unless($member->card_is_valid, 422, 'Cette carte est expirée ou son adhésion n’est pas approuvée.');
 
         return response()->json([
             'success' => true,
-            'member' => $member,
+            'member' => $member->only(['first_name', 'last_name', 'member_number', 'function_title', 'photo_file_path', 'membership_expires_at']),
         ]);
     }
 }

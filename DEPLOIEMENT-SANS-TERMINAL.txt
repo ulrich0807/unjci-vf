@@ -72,3 +72,20 @@ SI L'ANCIEN ÉCRAN RESTE AFFICHÉ
 - Actualiser avec Ctrl+F5 ou vider le cache du navigateur.
 - Si le panneau d'hébergement propose « Redémarrer PHP » ou « Réinitialiser
   OPcache », utiliser cette fonction. Aucun terminal n'est nécessaire.
+
+MISE À JOUR DE SÉCURITÉ
+
+- Reconstruire le dossier de livraison depuis les sources avant de l’envoyer.
+- Remplacer impérativement public_html/api/.htaccess : la règle storage transmet
+  les anciens fichiers à Laravel pour le contrôle d’accès, même s’ils existent.
+- Remplacer les sources API et le frontend ensemble : les photos et PDF sont
+  désormais chargés avec authentification.
+- Préserver aussi public_html/unjci-api/storage/app/private, qui reçoit les
+  nouveaux documents. Aucun fichier d’adhérent ne doit être supprimé.
+- Renseigner WAVE_WEBHOOK_SECRET dans le .env de l’hébergeur pour la vérification
+  des signatures. WAVE_SIGNING_SECRET est nécessaire si la signature des requêtes
+  est activée sur la clé API Wave.
+- Renouveler les anciens identifiants Wave qui figuraient dans les fichiers
+  exemple versionnés, puis mettre le .env de l’hébergeur à jour.
+- Il n’y a plus de route publique /api/clear-cache. Vider les caches depuis
+  l’outil de l’hébergeur ou avec php artisan optimize:clear si nécessaire.

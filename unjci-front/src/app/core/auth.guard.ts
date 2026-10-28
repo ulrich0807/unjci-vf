@@ -9,7 +9,7 @@ export const roleGuard = (expectedRoles: UserRole | UserRole[]): CanActivateFn =
     const session = auth.getSession();
 
     // 1. Si l'utilisateur n'est pas connecté du tout
-    if (!session) {
+    if (!session?.token) {
       return router.createUrlTree(['/login']);
     }
 
@@ -18,7 +18,8 @@ export const roleGuard = (expectedRoles: UserRole | UserRole[]): CanActivateFn =
 
     if (!rolesToCheck.includes(session.role as UserRole)) {
       return router.createUrlTree([
-        (session.role === 'admin' || session.role === 'media_admin') ? '/administration' : '/espace-membre'
+        session.role === 'scanner' ? '/scanner'
+          : (session.role === 'admin' || session.role === 'media_admin') ? '/administration' : '/espace-membre'
       ]);
     }
 

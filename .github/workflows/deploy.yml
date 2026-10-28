@@ -22,18 +22,22 @@ jobs:
       - name: 📦 Installer et Compiler le Frontend (Angular)
         run: |
           cd unjci-front
-          npm install --legacy-peer-deps
+          npm ci --legacy-peer-deps
+          npm test -- --watch=false
           npx ng build --configuration production
 
       - name: ⚙️ Setup PHP (Backend)
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: pdo_sqlite, sqlite3
 
       - name: 📦 Installer les dépendances du Backend (Laravel)
         run: |
           cd unjci-api
-          composer install --no-dev --optimize-autoloader
+          composer install --prefer-dist --no-interaction --optimize-autoloader
+          php vendor/phpunit/phpunit/phpunit
+          composer install --no-dev --no-interaction --optimize-autoloader
 
       - name: 📁 Préparer le dossier de déploiement
         run: |
@@ -41,6 +45,9 @@ jobs:
           
           # Copier le backend préparé (cœur Laravel)
           cp -R unjci-api/ deployment-package/unjci-api/
+          find deployment-package/unjci-api/bootstrap/cache -name '*.php' -delete
+          rm -f deployment-package/unjci-api/.env deployment-package/unjci-api/.env.testing
+          printf 'Require all denied\n' > deployment-package/unjci-api/.htaccess
           # Nettoyer les fichiers de développement du backend
           rm -rf deployment-package/unjci-api/tests
           rm -rf deployment-package/unjci-api/node_modules || true
@@ -53,6 +60,7 @@ jobs:
           
           # Copier les fichiers compilés du frontend à la racine du package
           cp -R unjci-front/dist/unjci-membership/browser/* deployment-package/
+          cp tools/deployment-root.htaccess deployment-package/.htaccess
 
       - name: 🚀 Déploiement via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -62,3 +70,9 @@ jobs:
           password: ${{ secrets.SECRET_3 }}
           local-dir: ./deployment-package/
           server-dir: public_html/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.env*
+            **/storage/**
+            **/tests/**

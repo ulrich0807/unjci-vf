@@ -4,11 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
 import { environment } from '../../../environments/environment';
+import { ProtectedFileDirective } from '../../core/protected-file.directive';
 
 @Component({
   selector: 'app-verify',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ProtectedFileDirective],
   templateUrl: './verify.component.html',
   styleUrl: './verify.component.css'
 })
@@ -56,8 +57,10 @@ export class VerifyComponent implements OnInit {
         this.isLoading = false;
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.errorMsg = "Cette carte est introuvable ou n'est plus valide.";
+      error: (error) => {
+        this.errorMsg = error.status === 401 ? 'Votre session a expiré. Reconnectez-vous.'
+          : error.status === 403 ? 'Votre compte ne permet pas de vérifier les cartes.'
+          : "Cette carte est introuvable, expirée ou son adhésion n’est pas approuvée.";
         this.isLoading = false;
         this.cdr.markForCheck();
       }

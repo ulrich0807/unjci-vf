@@ -1,7 +1,7 @@
 <div class="dashboard-page">
   <div *ngIf="showPaymentPopup" class="payment-popup-overlay">
     <div class="payment-popup-modal" [class.success]="paymentResult === 'success'" [class.cancel]="paymentResult === 'cancel'">
-      <h3 *ngIf="paymentResult === 'success'">Paiement Réussi !</h3>
+      <h3 *ngIf="paymentResult === 'success'">Retour de Wave</h3>
       <h3 *ngIf="paymentResult === 'cancel'">Paiement Annulé</h3>
       <p *ngIf="paymentResult === 'success'">Votre paiement a bien été transmis. Sa confirmation est en cours, vous pouvez suivre son état dans l'historique.</p>
       <p *ngIf="paymentResult === 'cancel'">Vous avez annulé le paiement. Vous pourrez réessayer à tout moment depuis votre espace.</p>
@@ -24,7 +24,7 @@
     <section class="member-summary">
       <div class="profile-head">
         <div class="avatar">
-          <img *ngIf="member.photoDataUrl" [src]="member.photoDataUrl" alt="" />
+          <img *ngIf="member.photoDataUrl" [protectedSrc]="member.photoDataUrl" alt="" />
           <span *ngIf="!member.photoDataUrl">{{ member.firstName[0] }}{{ member.lastName[0] }}</span>
         </div>
         <div>
@@ -101,7 +101,7 @@
           
           <div class="premium-upload">
             <div class="premium-upload-preview">
-              <img *ngIf="member?.photoDataUrl && !isPdf(member?.photoDataUrl)" [src]="member.photoDataUrl" alt="Photo" />
+              <img *ngIf="member?.photoDataUrl && !isPdf(member?.photoDataUrl)" [protectedSrc]="member.photoDataUrl" alt="Photo" />
               <div class="premium-upload-icon" *ngIf="!member?.photoDataUrl || isPdf(member?.photoDataUrl)">IMG</div>
             </div>
             <div class="premium-upload-details">
@@ -118,7 +118,7 @@
           
           <div class="premium-upload">
             <div class="premium-upload-preview">
-              <img *ngIf="member?.pressCardRectoUrl && !isPdf(member?.pressCardRectoUrl)" [src]="member.pressCardRectoUrl" alt="Carte Recto" />
+              <img *ngIf="member?.pressCardRectoUrl && !isPdf(member?.pressCardRectoUrl)" [protectedSrc]="member.pressCardRectoUrl" alt="Carte Recto" />
               <div class="premium-upload-icon" *ngIf="!member?.pressCardRectoUrl || isPdf(member?.pressCardRectoUrl)">PDF</div>
             </div>
             <div class="premium-upload-details">
@@ -135,7 +135,7 @@
           
           <div class="premium-upload">
             <div class="premium-upload-preview">
-              <img *ngIf="member?.pressCardVersoUrl && !isPdf(member?.pressCardVersoUrl)" [src]="member.pressCardVersoUrl" alt="Carte Verso" />
+              <img *ngIf="member?.pressCardVersoUrl && !isPdf(member?.pressCardVersoUrl)" [protectedSrc]="member.pressCardVersoUrl" alt="Carte Verso" />
               <div class="premium-upload-icon" *ngIf="!member?.pressCardVersoUrl || isPdf(member?.pressCardVersoUrl)">PDF</div>
             </div>
             <div class="premium-upload-details">
@@ -276,13 +276,13 @@
       <div class="section-head">
         <div>
           <span class="section-label">COTISATION</span>
-          <h2>{{ paymentMode === 'renewal' ? 'Renouveller mon adhésion' : 'Payer mes frais d’adhésion' }}</h2>
+          <h2>{{ paymentMode === 'renewal' ? 'Renouveler mon adhésion' : 'Payer mes frais d’adhésion' }}</h2>
           <p class="payment-intro" *ngIf="paymentActionAvailable && paymentMode === 'adhesion'">
-            Effectuez le paiement Wave puis renseignez sa référence. Une fois le paiement confirmé,
+            Effectuez le paiement Wave depuis votre espace. Une fois le paiement confirmé,
             votre dossier sera automatiquement transmis à l’UNJCI pour validation.
           </p>
           <p class="payment-intro" *ngIf="paymentActionAvailable && paymentMode === 'renewal'">
-            Effectuez le paiement Wave puis renseignez sa référence. Après confirmation, votre demande
+            Effectuez le paiement Wave depuis votre espace. Après confirmation, votre demande
             de renouvellement sera examinée par l’UNJCI.
           </p>
         </div>
@@ -311,7 +311,7 @@
         <article class="payment-option" [class.adhesion-option]="paymentMode === 'adhesion'" [class.renewal-option]="paymentMode === 'renewal'">
           <div class="option-icon">{{ paymentMode === 'renewal' ? 'R' : 'A' }}</div>
           <span class="option-label">{{ paymentMode === 'renewal' ? 'RENOUVELLEMENT' : 'ADHÉSION' }}</span>
-          <h3>{{ paymentMode === 'renewal' ? 'Renouveller mon adhésion' : 'Finaliser ma première adhésion' }}</h3>
+          <h3>{{ paymentMode === 'renewal' ? 'Renouveler mon adhésion' : 'Finaliser ma première adhésion' }}</h3>
           <div class="option-price"><strong>{{ expectedAmount | number:'1.0-0' }}</strong><span>FCFA</span></div>
           <p *ngIf="paymentMode === 'adhesion'">
             Ces frais permettent de transmettre votre nouvelle demande à l’UNJCI pour validation.
