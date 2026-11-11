@@ -8,6 +8,7 @@ use App\Http\Controllers\PressMediaController;
 use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MemberFileController;
+use App\Http\Middleware\EnsureMembershipRequestsOpen;
 
 Route::get('/health', function () {
     return response()->json([
@@ -21,7 +22,7 @@ Route::get('/press-media', [PressMediaController::class, 'index']);
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 
 Route::get('/members/by-card/{cardNumber}', [MemberController::class, 'findByCardNumber']);
-Route::post('/members/apply', [MemberController::class, 'store']);
+Route::post('/members/apply', [MemberController::class, 'store'])->middleware(EnsureMembershipRequestsOpen::class);
 Route::post('/members/email-verification/send', [MemberController::class, 'sendEmailVerificationOtp'])
     ->middleware('throttle:3,1');
 Route::post('/members/email-verification/verify', [MemberController::class, 'verifyEmailOtp'])
@@ -39,7 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/member/password', [AuthController::class, 'changePassword']);
     Route::get('/member/profile', [MemberController::class, 'profile']);
     Route::post('/member/profile/update', [MemberController::class, 'updateProfile']); // Mise à jour profil (infos + fichiers)
-    Route::post('/member/payment/wave/initiate', [\App\Http\Controllers\WavePaymentController::class, 'initiateCheckout']); // <-- Nouvelle route Wave
+    Route::post('/member/payment/wave/initiate', [\App\Http\Controllers\WavePaymentController::class, 'initiateCheckout'])
+        ->middleware(EnsureMembershipRequestsOpen::class);
     Route::post('/member/upload-old-cards', [MemberController::class, 'uploadOldCards']);
 
     // Routes de l'Administration

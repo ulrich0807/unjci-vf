@@ -19,23 +19,23 @@
       </a>
       
       <!-- Adhésion (Visible UNIQUEMENT si déconnecté) -->
-      <a
+      <button
         *ngIf="!session"
-        routerLink="/guide-adhesion"
-        routerLinkActive="active"
+        type="button"
+        appMembershipClosed
         class="nav-link"
         (click)="closeMenu()"
       >
         Adhésion
-      </a>
-      <a
-        routerLink="/renouvellement"
-        routerLinkActive="active"
+      </button>
+      <button
+        type="button"
+        appMembershipClosed
         class="nav-link"
         (click)="closeMenu()"
       >
         Renouvellement
-      </a>
+      </button>
 
       <!-- Nous contacter (Visible pour tous) -->
       <a
@@ -124,6 +124,14 @@
 <main>
   <router-outlet></router-outlet>
 </main>
+
+<dialog #closureDialog class="membership-closure-dialog" aria-labelledby="membership-closure-title"
+        (close)="membershipClosure.visible.set(false)">
+  <h2 id="membership-closure-title">FIN DES DEMANDES D’ADHÉSION ET DE RENOUVELLEMENT DES CARTES UNJCI SESSION 2026</h2>
+  <form method="dialog">
+    <button type="submit" autofocus>Fermer</button>
+  </form>
+</dialog>
 
 <footer class="modern-footer">
  © 2026 Union Nationale des Journalistes de Côte d'Ivoire. Tous droits réservés. — Réalisé par Performix iT.

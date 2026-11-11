@@ -334,6 +334,13 @@ form > label > small {
   text-decoration: none;
 }
 
+.support button {
+  margin-top: .35rem;
+  padding: .35rem .65rem;
+  border-radius: .45rem;
+  font-weight: 800;
+}
+
 .submit-button {
   min-height: 54px;
   margin-top: 4px;

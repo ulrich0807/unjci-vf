@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { ProtectedFileDirective } from '../../core/protected-file.directive';
+import { MembershipClosedDirective } from '../../core/membership-closure';
 
 type PaymentMode = 'adhesion' | 'renewal';
 type MembershipStage = 'awaiting_payment' | 'payment_pending' | 'under_review' | 'approved' | 'rejected';
@@ -36,7 +37,7 @@ const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; descriptio
 @Component({
   selector: 'app-member-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective, MembershipClosedDirective],
   templateUrl: './member-dashboard.component.html',
   styleUrl: './member-dashboard.component.css'
 })
@@ -50,8 +51,6 @@ export class MemberDashboard implements OnInit {
   expectedAmount = 10000;
   paymentMode: PaymentMode = 'adhesion';
   membershipStage: MembershipStage = 'awaiting_payment';
-  savingPayment = false;
-  paymentError = '';
   
   // Résultat du paiement Wave
   paymentResult: 'success' | 'cancel' | null = null;
@@ -65,8 +64,6 @@ export class MemberDashboard implements OnInit {
   
   editing = false;
   saved = false;
-  addingPaymentProof = false;
-  paymentSaved = false;
 
   selectedProfileFiles: { photo?: File; pressCardRecto?: File; pressCardVerso?: File } = {};
   savingProfile = false;
@@ -74,7 +71,6 @@ export class MemberDashboard implements OnInit {
 
 
   profileForm: FormGroup;
-  paymentProofForm: FormGroup;
   passwordForm: FormGroup;
   changingPassword = false;
   passwordSaved = false;
@@ -102,10 +98,6 @@ export class MemberDashboard implements OnInit {
       postalAddress: [''],
       employers: [''],
       functionTitle: ['']
-    });
-
-    this.paymentProofForm = this.fb.group({
-      // Plus besoin de ces champs pour Wave
     });
 
     this.passwordForm = this.fb.group({
@@ -286,45 +278,6 @@ export class MemberDashboard implements OnInit {
           || 'Le mot de passe n’a pas pu être modifié.';
         this.cdr.detectChanges();
       },
-    });
-  }
-
-  startPayment(): void {
-    this.paymentMode = this.resolvePaymentMode(this.member);
-    this.expectedAmount = this.amountFor(this.paymentMode);
-    this.paymentError = '';
-    this.paymentProofForm.reset();
-    this.addingPaymentProof = true;
-  }
-
-  cancelPayment(): void {
-    this.addingPaymentProof = false;
-    this.paymentError = '';
-    this.paymentProofForm.reset();
-  }
-
-  initiateWavePayment(): void {
-    this.paymentError = '';
-    this.savingPayment = true;
-    
-    const session = this.auth.getSession();
-    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session?.token}` });
-
-    this.http.post(`${environment.apiUrl}/member/payment/wave/initiate`, { paymentType: this.paymentMode }, { headers }).subscribe({
-      next: (res: any) => {
-        this.savingPayment = false;
-        if (res.checkout_url) {
-          window.location.href = res.checkout_url;
-        } else {
-          this.paymentError = 'Impossible de récupérer le lien de paiement Wave.';
-        }
-      },
-      error: (err) => {
-        console.error('Erreur lors de l\'initialisation du paiement Wave', err);
-        this.paymentError = err.error?.message || 'Une erreur est survenue lors de la connexion à Wave.';
-        this.savingPayment = false;
-        this.cdr.detectChanges();
-      }
     });
   }
 

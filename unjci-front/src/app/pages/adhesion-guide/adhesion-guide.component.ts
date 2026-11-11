@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { MembershipClosedDirective } from '../../core/membership-closure';
 
 @Component({
   selector: 'app-adhesion-guide',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, MembershipClosedDirective],
   templateUrl: './adhesion-guide.component.html',
   styleUrls: ['./adhesion-guide.component.css']
 })

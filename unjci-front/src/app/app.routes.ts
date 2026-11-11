@@ -13,15 +13,16 @@ import { AdminDashboard } from './pages/admin-dashboard/admin-dashboard.componen
 import { ContactComponent } from './pages/contact/contact.component';
 import { Scanner } from './pages/scanner/scanner';
 import { roleGuard } from './core/auth.guard';
+import { membershipClosedGuard } from './core/membership-closure';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
-  { path: 'application', component: ApplicationComponent },
+  { path: 'application', component: ApplicationComponent, canActivate: [membershipClosedGuard] },
   { path: 'guide-adhesion', component: AdhesionGuideComponent },
   { path: 'login', component: LoginComponent },
   { path: 'mot-de-passe-oublie', component: ForgotPasswordComponent },
   { path: 'verifier-email', component: EmailVerificationComponent },
-  { path: 'renouvellement', component: RenewalEntryComponent },
+  { path: 'renouvellement', component: RenewalEntryComponent, canActivate: [membershipClosedGuard] },
   { path: 'espace-membre', component: MemberDashboard, canActivate: [roleGuard('member')] },
   { path: 'ma-carte', component: CardComponent, canActivate: [roleGuard('member')] },
   { path: 'nous-contacter', component: ContactComponent },
