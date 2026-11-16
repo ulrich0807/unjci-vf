@@ -93,6 +93,26 @@
   letter-spacing: 1px;
 }
 
+.card-numbers {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .5rem .75rem;
+  margin: 1rem 0 0;
+  font-size: .9rem;
+  line-height: 1.4;
+}
+
+.card-numbers dt {
+  color: #475569;
+}
+
+.card-numbers dd {
+  margin: 0;
+  color: #17241f;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .footer-section {
   display: flex;
   justify-content: space-between;

@@ -18,6 +18,12 @@
         <h2 class="name">{{ member.last_name | uppercase }} {{ member.first_name }}</h2>
         <p class="function">{{ member.function_title || 'Journaliste' }}</p>
         <div class="badge-membre">MEMBRE</div>
+        <dl class="card-numbers">
+          <dt>N° carte CIJP</dt>
+          <dd>{{ member.press_card_number?.trim() || 'Non renseigné' }}</dd>
+          <dt>N° carte UNJCI</dt>
+          <dd>{{ member.member_number }}</dd>
+        </dl>
       </div>
 
       <!-- Pied de carte -->
