@@ -26,27 +26,54 @@ export async function printMemberCards(
   }, { once: true });
   doc.documentElement.lang = 'fr';
   doc.title = 'Cartes des adhérents UNJCI';
+  const viewport = doc.createElement('meta');
+  viewport.name = 'viewport';
+  viewport.content = 'width=device-width, initial-scale=1';
   const style = doc.createElement('style');
   style.textContent = `
     * { box-sizing: border-box; }
-    body { margin: 1rem; color: #17241f; font: 15px system-ui, sans-serif; }
-    header { max-width: 190mm; margin: 0 auto 1rem; }
+    body { margin: 1rem; background: #f1f3f4; color: #17241f; font: 16px system-ui, sans-serif; }
+    header { max-width: 52rem; margin: 0 auto 1rem; }
     button { padding: .55rem 1rem; font: inherit; cursor: pointer; }
-    main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5mm; max-width: 190mm; margin: auto; }
-    article { border: 1px solid #bfcfc6; border-top: 3px solid #ec8729; border-radius: 3mm;
-      padding: 4mm; break-inside: avoid; overflow-wrap: anywhere; }
-    .portrait { display: grid; place-items: center; width: 30mm; height: 30mm;
-      margin: 0 auto 3mm; background: #e9f2ed; font-weight: 800; font-size: 1.5rem; }
-    .portrait img { width: 100%; height: 100%; object-fit: cover; }
-    h2 { margin: 0 0 2mm; font-size: 1rem; }
-    article p { margin: 1mm 0; }
-    footer { display: flex; justify-content: space-between; align-items: center; margin-top: 3mm; }
-    footer img { width: 22mm; height: 22mm; object-fit: contain; }
+    main { display: grid; gap: 1.25rem; max-width: 52rem; margin: auto; }
+    .card-row { display: flex; justify-content: center; align-items: stretch; gap: 1.25rem; }
+    article { display: flex; flex-direction: column; flex: 0 1 25rem; min-width: 0;
+      padding: 2.5em 1.875em; border-radius: 1em; background: #fff;
+      box-shadow: 0 .7em 1.8em #1118281c; break-inside: avoid; overflow-wrap: anywhere; }
+    .portrait { position: relative; isolation: isolate; display: grid; place-items: center;
+      width: 81%; aspect-ratio: 1; margin: 0 auto 2.5em; }
+    .portrait::before, .portrait::after { position: absolute; z-index: -1; content: '';
+      width: 23%; aspect-ratio: 1; background: #f58220; }
+    .portrait::before { top: -7%; right: -5%; }
+    .portrait::after { bottom: -7%; left: -5%; }
+    .portrait img, .initials { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .portrait img { object-fit: cover; }
+    .initials { display: grid; place-items: center; background: #eef1ee; font-weight: 800; font-size: 2em; }
+    h2 { margin: 0; color: #111; font-size: 1.875em; line-height: 1.2; font-weight: 900; }
+    .function { margin: .25em 0 1em; color: #475569; font-size: 1.25em; }
+    .badge { align-self: flex-start; padding: .45em 2.1em; border: 2px solid #dc8b3c;
+      border-radius: 99px; color: #b76b24; font-weight: 800; letter-spacing: .06em; }
+    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .3em .75em;
+      margin: .9em 0 1.7em; font-size: .9em; }
+    dt { color: #475569; }
+    dd { margin: 0; font-weight: 750; }
+    footer { display: flex; justify-content: space-between; align-items: flex-end; gap: .5em; margin-top: auto; }
+    .qr { width: 32%; aspect-ratio: 1; }
+    .logo { width: 34%; height: auto; }
     @page { size: A4 portrait; margin: 10mm; }
-    @media print { header { display: none; } body { margin: 0; } }
-    @media screen and (max-width: 580px) { main { grid-template-columns: 1fr; } }
+    @media print {
+      header { display: none; }
+      body { margin: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      main { display: block; max-width: none; }
+      .card-row { gap: 6mm; margin-bottom: 6mm; break-inside: avoid; }
+      article { flex: 0 1 88mm; padding: 1.9em 1.6em; border: 1px solid #dce1df; box-shadow: none; font-size: 12px; }
+    }
+    @media screen and (max-width: 640px) {
+      .card-row { flex-direction: column; align-items: center; }
+      article { width: min(100%, 25rem); flex-basis: auto; font-size: clamp(12px, 4vw, 16px); }
+    }
   `;
-  doc.head.append(style);
+  doc.head.append(viewport, style);
   const header = doc.createElement('header');
   const message = doc.createElement('p');
   message.setAttribute('role', 'status');
@@ -64,24 +91,37 @@ export async function printMemberCards(
     const card = doc.createElement('article');
     const portrait = doc.createElement('div');
     portrait.className = 'portrait';
-    portrait.textContent = `${member.first_name[0] ?? ''}${member.last_name[0] ?? ''}`;
+    const initials = doc.createElement('span');
+    initials.className = 'initials';
+    initials.textContent = `${member.first_name[0] ?? ''}${member.last_name[0] ?? ''}`;
+    portrait.append(initials);
     const name = doc.createElement('h2');
     name.textContent = `${member.last_name.toLocaleUpperCase('fr')} ${member.first_name}`;
-    card.append(portrait, name);
-    for (const text of [
-      member.function_title || 'Journaliste',
-      `N° carte CIJP  ${member.press_card_number?.trim() || 'Non renseigné'}`,
-      `N° carte UNJCI  ${member.member_number}`,
+    const position = doc.createElement('p');
+    position.className = 'function';
+    position.textContent = member.function_title || 'Journaliste';
+    const badge = doc.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = 'MEMBRE';
+    const numbers = doc.createElement('dl');
+    for (const [label, number] of [
+      ['N° carte CIJP', member.press_card_number?.trim() || 'Non renseigné'],
+      ['N° carte UNJCI', member.member_number],
     ]) {
-      const line = doc.createElement('p');
-      line.textContent = text;
-      card.append(line);
+      const term = doc.createElement('dt');
+      term.textContent = label;
+      const value = doc.createElement('dd');
+      value.textContent = number;
+      numbers.append(term, value);
     }
+    card.append(portrait, name, position, badge, numbers);
     const footer = doc.createElement('footer');
     const qr = doc.createElement('img');
+    qr.className = 'qr';
     qr.alt = 'QR de vérification';
     qr.src = await toDataURL(`${verificationBase}/verification/${encodeURIComponent(member.qr_token)}`, { width: 180 });
     const logo = doc.createElement('img');
+    logo.className = 'logo';
     logo.alt = 'UNJCI';
     logo.src = logoUrl;
     footer.append(qr, logo);
@@ -111,7 +151,12 @@ export async function printMemberCards(
   try {
     for (let start = 0; start < members.length && !preview.closed; start += 6) {
       const cards = await Promise.all(members.slice(start, start + 6).map(createCard));
-      list.append(...cards);
+      for (let index = 0; index < cards.length; index += 2) {
+        const row = doc.createElement('div');
+        row.className = 'card-row';
+        row.append(...cards.slice(index, index + 2));
+        list.append(row);
+      }
     }
     if (preview.closed) return;
     message.textContent = `${members.length} ${members.length === 1 ? 'carte prête' : 'cartes prêtes'} à imprimer.`;
