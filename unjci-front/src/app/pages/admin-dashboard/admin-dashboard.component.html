@@ -280,24 +280,52 @@
     </div>
   </section>
 
-  <!-- REGISTRE DES MEMBRES EXISTANT -->
-  <section class="members-card">
+  <section class="members-card member-register" *ngIf="hasPermission('manage_members')">
     <div class="card-heading">
       <div>
-        <span>RÉGISTRE</span>
         <h2>Liste des adhérents</h2>
+        <p class="registry-count">{{ filteredMembers.length }} sur {{ members.length }} adhérents</p>
       </div>
-      <div class="filters">
-        <input type="text" [(ngModel)]="search" (ngModelChange)="filterMembers()" placeholder="Rechercher par nom..." />
-        <select [(ngModel)]="statusFilter" (change)="filterMembers()">
-          <option value="">Tous les statuts</option>
-          <option value="pending">En attente (Nouvelle Adhésion)</option>
-          <option value="under_review">À valider</option>
-          <option value="approved">Actif (Cartes valides)</option>
-          <option value="rejected">Rejeté</option>
-        </select>
+      <div class="registry-tools">
+        <button type="button" class="login-audit-button secondary" (click)="printCards(printableMembers)" [disabled]="!printableMembers.length">
+          Imprimer les cartes ({{ printableMembers.length }})
+        </button>
+        <button type="button" class="login-audit-button" (click)="exportMembers()" [disabled]="!filteredMembers.length || exportingMembers">
+          {{ exportingMembers ? 'Export en cours…' : 'Exporter en Excel' }}
+        </button>
       </div>
     </div>
+
+    <div class="filters registry-filters">
+      <label>Rechercher
+        <input type="search" [(ngModel)]="search" (ngModelChange)="filterMembers()" placeholder="Nom, e-mail ou numéro" />
+      </label>
+      <label>Statut
+        <select [(ngModel)]="statusFilter" (ngModelChange)="filterMembers()">
+          <option value="">Tous les statuts</option>
+          <option value="awaiting_payment">Paiement requis</option>
+          <option value="payment_pending">Paiement à confirmer</option>
+          <option value="under_review">Dossier à valider</option>
+          <option value="approved">Adhésion validée</option>
+          <option value="rejected">Demande rejetée</option>
+        </select>
+      </label>
+      <label>Type de demande
+        <select [(ngModel)]="memberTypeFilter" (ngModelChange)="filterMembers()">
+          <option value="">Toutes les demandes</option>
+          <option value="adhesion">Adhésion</option>
+          <option value="renewal">Renouvellement</option>
+        </select>
+      </label>
+      <label>Trier par
+        <select [(ngModel)]="memberSort" (ngModelChange)="filterMembers()">
+          <option value="recent">Plus récentes</option>
+          <option value="oldest">Plus anciennes</option>
+          <option value="name">Nom (A–Z)</option>
+        </select>
+      </label>
+    </div>
+    <p class="error-message" *ngIf="memberRegisterError" role="alert">{{ memberRegisterError }}</p>
 
     <div class="table-wrap" *ngIf="filteredMembers.length; else empty">
       <table>
@@ -326,11 +354,14 @@
               </ng-template>
               <ng-template #noMemberNumber><small>Non attribué</small></ng-template>
             </td>
-            <td>{{ member.request_type }}<small>{{ member.created_at | date:'dd/MM/yyyy HH:mm' }}</small></td>
+            <td>{{ memberRequestLabel(member.request_type) }}<small>{{ member.created_at | date:'dd/MM/yyyy HH:mm' }}</small></td>
             <td><span class="status" [attr.data-status]="member.membership_stage || member.status">{{ memberStageLabel(member) }}</span></td>
             <td *ngIf="hasPermission('manage_members')">
+              <div *ngIf="member.card_is_valid && member.qr_token && member.member_number" class="actions registry-print-action">
+                <button type="button" class="print-card" (click)="$event.stopPropagation(); printCards([member])">Imprimer la carte</button>
+              </div>
               <div class="actions" *ngIf="member.membership_stage === 'under_review'; else noReviewAction">
-                <label *ngIf="requiresMemberNumberVerification(member)">
+                <label class="registry-member-number" *ngIf="requiresMemberNumberVerification(member)" (click)="$event.stopPropagation()">
                   <small>Numéro UNJCI vérifié</small>
                   <input
                     type="text"
@@ -353,7 +384,7 @@
               <ng-template #noReviewAction>
                 <div class="actions" *ngIf="member.status === 'rejected' || member.status === 'approved'; else noAction">
                   <button class="validate" [disabled]="memberActionInProgress[member.id]" (click)="$event.stopPropagation(); setStatus(member, 'pending')">{{ memberActionInProgress[member.id] ? 'Enregistrement…' : (member.status === 'approved' ? 'Réexaminer le dossier' : 'Rouvrir le dossier') }}</button>
-                  <small *ngIf="member.status === 'approved'">La carte sera indisponible pendant le réexamen.</small>
+                  <small class="registry-action-note" *ngIf="member.status === 'approved'">La carte sera indisponible pendant le réexamen.</small>
                   <small class="error-message" *ngIf="memberActionErrors[member.id]" role="alert">{{ memberActionErrors[member.id] }}</small>
                 </div>
                 <ng-template #noAction><small>Aucune action requise</small></ng-template>

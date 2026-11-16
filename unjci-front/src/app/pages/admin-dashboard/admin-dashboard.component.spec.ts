@@ -82,6 +82,26 @@ describe('AdminDashboard', () => {
     expect(member.membership_stage).toBe('under_review');
   });
 
+  it('filters by displayed status, searches both names and sorts all matching cards before pagination', () => {
+    component.members = [
+      { id: 1, first_name: 'Awa', last_name: 'Zadi', request_type: 'renewal', membership_stage: 'approved', card_is_valid: true, qr_token: 'qr1', member_number: 'UJ26-00001' },
+      { id: 2, first_name: 'Awa', last_name: 'Éba', request_type: 'renewal', membership_stage: 'approved', card_is_valid: false, qr_token: 'qr2', member_number: 'UJ26-00002' },
+      { id: 3, first_name: 'Awa', last_name: 'Koffi', request_type: 'renewal', membership_stage: 'under_review', status: 'pending' },
+      { id: 4, first_name: 'Awa', last_name: 'Bamba', request_type: 'adhesion', membership_stage: 'approved', card_is_valid: true, qr_token: 'qr4', member_number: 'UJ26-00004' },
+    ];
+    component.search = 'awa';
+    component.statusFilter = 'approved';
+    component.memberTypeFilter = 'renewal';
+    component.memberSort = 'name';
+    component.filterMembers();
+    expect(component.filteredMembers.map(member => member.id)).toEqual([2, 1]);
+    expect(component.printableMembers.map(member => member.member_number)).toEqual(['UJ26-00001']);
+
+    component.search = 'eba awa';
+    component.filterMembers();
+    expect(component.filteredMembers.map(member => member.id)).toEqual([2]);
+  });
+
   it('offers a review action for an approved dossier and displays its approval actions afterward', () => {
     const member = {
       id: 84, first_name: 'Awa', last_name: 'KOUASSI', personal_email: 'awa@example.test',

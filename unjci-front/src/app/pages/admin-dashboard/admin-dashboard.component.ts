@@ -5,8 +5,9 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable } from 'rxjs';
+import { firstValueFrom, Observable, timeout } from 'rxjs';
 import { ProtectedFileDirective } from '../../core/protected-file.directive';
+import type { PrintableMember } from './print-member-cards';
 import {
   ManagedPressMedia,
   PressCompanyRecord,
@@ -102,6 +103,11 @@ export class AdminDashboard implements OnInit {
   
   search = '';
   statusFilter = '';
+  memberTypeFilter = '';
+  memberSort = 'recent';
+  memberRegisterError = '';
+  exportingMembers = false;
+  private readonly memberNameCollator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
   scannerVisible = false;
 
   pressCompanies: PressCompanyRecord[] = [];
@@ -224,16 +230,97 @@ export class AdminDashboard implements OnInit {
 
   // Filtrage local du tableau
   filterMembers(): void {
-    const term = this.search.toLowerCase().trim();
-    this.filteredMembers = this.members.filter(m => {
-      const matchSearch = m.first_name.toLowerCase().includes(term) || 
-                          m.last_name.toLowerCase().includes(term) || 
-                          (m.member_number && m.member_number.toLowerCase().includes(term)) ||
-                          (m.current_member_number && m.current_member_number.toLowerCase().includes(term));
-      const matchStatus = this.statusFilter ? m.status === this.statusFilter : true;
-      return matchSearch && matchStatus;
+    const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const words = normalize(this.search).trim().split(/\s+/).filter(Boolean);
+    this.filteredMembers = this.members.filter(member => {
+      const searchable = normalize([
+        member.first_name, member.last_name, member.personal_email, member.member_number,
+        member.current_member_number, member.press_card_number,
+      ].join(' '));
+      const stage = member.membership_stage || member.status;
+      return words.every(word => searchable.includes(word))
+        && (!this.statusFilter || stage === this.statusFilter)
+        && (!this.memberTypeFilter || member.request_type === this.memberTypeFilter);
+    });
+    this.filteredMembers.sort((first, second) => {
+      if (this.memberSort === 'name') {
+        return this.memberNameCollator.compare(first.last_name, second.last_name)
+          || this.memberNameCollator.compare(first.first_name, second.first_name) || first.id - second.id;
+      }
+      const byDate = (Date.parse(second.created_at) || 0) - (Date.parse(first.created_at) || 0) || second.id - first.id;
+      return this.memberSort === 'oldest' ? -byDate : byDate;
     });
     this.memberPage = 1;
+  }
+
+  memberRequestLabel(type: string): string {
+    if (type === 'renewal') return 'Renouvellement';
+    return type === 'adhesion' ? 'Adhésion' : '—';
+  }
+
+  get printableMembers(): PrintableMember[] {
+    return this.filteredMembers.filter(member => member.card_is_valid && member.qr_token && member.member_number);
+  }
+
+  async printCards(members: PrintableMember[]): Promise<void> {
+    const token = this.auth.getSession()?.token;
+    if (!this.hasPermission('manage_members') || !token || !members.length) return;
+    this.memberRegisterError = '';
+    const preview = window.open('', '_blank');
+    if (!preview) {
+      this.memberRegisterError = 'Autorisez les fenêtres contextuelles pour ouvrir l’aperçu des cartes.';
+      return;
+    }
+    preview.document.body.textContent = 'Préparation des cartes…';
+    try {
+      const { printMemberCards } = await import('./print-member-cards');
+      if (preview.closed) return;
+      const verificationBase = (environment.frontendUrl || window.location.origin).replace(/\/$/, '');
+      const logoUrl = new URL('assets/images/logo.jpg', document.baseURI).href;
+      await printMemberCards(preview, members, verificationBase, logoUrl, path => {
+        const segments = path.split('/');
+        if (segments.some(segment => !segment || segment === '.' || segment === '..')) {
+          return Promise.reject(new Error('Chemin de photo invalide.'));
+        }
+        const url = `${environment.storageUrl}/${segments.map(encodeURIComponent).join('/')}`;
+        return firstValueFrom(this.http.get(url, {
+          headers: { Authorization: `Bearer ${token}` }, responseType: 'blob',
+        }).pipe(timeout(10000)));
+      });
+    } catch {
+      if (!preview.closed) preview.close();
+      this.memberRegisterError = 'Impossible de préparer les cartes à imprimer.';
+      this.cdr.markForCheck();
+    }
+  }
+
+  async exportMembers(): Promise<void> {
+    if (!this.hasPermission('manage_members') || !this.filteredMembers.length || this.exportingMembers) return;
+    this.exportingMembers = true;
+    this.memberRegisterError = '';
+    const rows = this.filteredMembers.map(member => [
+      member.last_name, member.first_name, member.personal_email, member.member_number,
+      member.member_number ? '' : member.current_member_number, member.press_card_number,
+      this.memberRequestLabel(member.request_type), this.memberStageLabel(member),
+      member.created_at ? new Date(member.created_at).toLocaleString('fr-FR') : '',
+    ].map(value => String(value ?? '')));
+    try {
+      const { createMemberRegisterWorkbook } = await import('./member-register-export');
+      const buffer = await createMemberRegisterWorkbook(rows);
+      const url = URL.createObjectURL(new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'adherents-unjci.xlsx';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      this.memberRegisterError = 'Impossible de télécharger le registre Excel.';
+    } finally {
+      this.exportingMembers = false;
+      this.cdr.markForCheck();
+    }
   }
 
   get paginatedMembers(): any[] {
@@ -269,7 +356,8 @@ export class AdminDashboard implements OnInit {
       rejected: 'Demande rejetée',
     };
 
-    return labels[member.membership_stage] || member.status;
+    const stage = member.membership_stage || member.status;
+    return labels[stage] || stage;
   }
 
   requiresMemberNumberVerification(member: any): boolean {
