@@ -3,7 +3,6 @@ import { toDataURL } from 'qrcode';
 export interface PrintableMember {
   first_name: string;
   last_name: string;
-  function_title?: string;
   member_number: string;
   press_card_number?: string;
   photo_file_path?: string;
@@ -99,7 +98,7 @@ export async function printMemberCards(
     name.textContent = `${member.last_name.toLocaleUpperCase('fr')} ${member.first_name}`;
     const position = doc.createElement('p');
     position.className = 'function';
-    position.textContent = member.function_title || 'Journaliste';
+    position.textContent = 'Journaliste';
     const badge = doc.createElement('span');
     badge.className = 'badge';
     badge.textContent = 'MEMBRE';
