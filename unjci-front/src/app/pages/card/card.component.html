@@ -1,24 +1,23 @@
-<!-- C'est ce conteneur qui va empêcher le contenu de passer sous le menu -->
 <div class="carte-page-wrapper">
 
   <div class="card-container" *ngIf="member?.card_is_valid; else notActive">
     <div class="unjci-id-card">
-      <!-- Section Photo avec les carrés oranges -->
+      <div class="card-heading">UNION NATIONALE DES JOURNALISTES DE CÔTE D’IVOIRE</div>
       <div class="photo-wrapper">
         <div class="orange-square top-right"></div>
         <div class="photo-frame">
           <img *ngIf="member.photo_file_path" [protectedSrc]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
-          <span *ngIf="!member.photo_file_path">photo</span>
+          <span *ngIf="!member.photo_file_path">{{ member.first_name?.[0] }}{{ member.last_name?.[0] }}</span>
         </div>
         <div class="orange-square bottom-left"></div>
       </div>
 
-      <!-- Informations -->
       <div class="info-section">
-        <h2 class="name">{{ member.last_name | uppercase }} {{ member.first_name }}</h2>
-        <p class="function">Journaliste</p>
-        <div class="badge-membre">MEMBRE</div>
+        <h2 class="name">{{ member.last_name | uppercase }} {{ member.first_name | uppercase }}</h2>
+        <p class="function">JOURNALISTE</p>
         <dl class="card-numbers">
+          <dt>Organe de presse</dt>
+          <dd>{{ member.media_name?.trim() || member.employers?.trim() || 'Non renseigné' }}</dd>
           <dt>N° carte CIJP</dt>
           <dd>{{ member.press_card_number?.trim() || 'Non renseigné' }}</dd>
           <dt>N° carte UNJCI</dt>
@@ -26,20 +25,18 @@
         </dl>
       </div>
 
-      <!-- Pied de carte -->
       <div class="footer-section">
         <div class="qr-code">
-          <qrcode [qrdata]="qrCodeUrl" [width]="80" [errorCorrectionLevel]="'M'"></qrcode>
+          <qrcode [qrdata]="qrCodeUrl" [width]="180" [errorCorrectionLevel]="'M'"></qrcode>
         </div>
         <div class="logo">
-          <img src="assets/images/logo.jpg" alt="UNJCI" width="100" />
+          <img src="assets/images/logo.jpg" alt="UNJCI" />
         </div>
       </div>
     </div>
   </div>
 
   <ng-template #notActive>
-    <!-- J'ai ajouté un peu de style CSS dans la classe ci-dessous pour que le message soit plus joli -->
     <div class="not-active-msg alert-box">
       <p>Votre carte est expirée ou votre adhésion est en attente de validation.</p>
     </div>

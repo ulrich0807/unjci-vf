@@ -1,145 +1,46 @@
-.card-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  background-color: #f3f4f6;
-  min-height: 80vh;
-}
-
+:host { display: block; }
+.carte-page-wrapper { width: 100%; min-height: 80vh; padding-bottom: 3rem; }
+.card-container { display: flex; justify-content: center; padding: 2rem 1rem; background: #f3f4f6; }
+.unjci-id-card, .unjci-id-card * { box-sizing: border-box; }
 .unjci-id-card {
-  width: 320px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  padding: 2rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
+  display: flex; flex-direction: column; width: 100%; max-width: 448px;
+  padding: 1.75em 1.6em 2em; border-radius: 1.5em; background: #fff;
+  box-shadow: 0 10px 30px #1118281c; color: #111;
+  font: clamp(12px, 3.6vw, 16px) Arial, sans-serif; overflow-wrap: anywhere;
 }
-
-.photo-wrapper {
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
+.card-heading {
+  display: flex; align-items: center; gap: .8em; margin-bottom: 3.5em;
+  font-size: .64em; font-weight: 800; line-height: 1.35; text-align: center;
 }
-
+.card-heading::before, .card-heading::after {
+  content: ''; flex: 0 0 2.2em; height: 2px; background: #f58220;
+}
+.photo-wrapper { position: relative; width: 78%; aspect-ratio: 1; margin: 0 auto 2.8em; }
 .photo-frame {
-  width: 220px;
-  height: 220px;
-  background: #000;
-  z-index: 2;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-family: sans-serif;
+  position: relative; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%;
+  background: #eef1ee; font-size: 2em; font-weight: 800;
 }
-
-.photo-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.orange-square {
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  background: #f58220;
-  z-index: 1;
-}
-
-.top-right {
-  top: -15px;
-  right: 15px;
-}
-
-.bottom-left {
-  bottom: -15px;
-  left: 15px;
-}
-
-.info-section {
-  text-align: left;
-  margin-bottom: 2rem;
-}
-
-.name {
-  font-size: 1.6rem;
-  font-weight: 800;
-  margin: 0;
-  color: #111;
-  line-height: 1.2;
-}
-
-.function {
-  font-size: 1.1rem;
-  color: #555;
-  margin: 0.2rem 0 1rem 0;
-}
-
-.badge-membre {
-  display: inline-block;
-  border: 2px solid #d99147;
-  color: #d99147;
-  font-weight: bold;
-  padding: 0.4rem 2rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-}
-
+.photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+.orange-square { position: absolute; width: 23%; aspect-ratio: 1; background: #f58220; }
+.top-right { top: -5%; right: -5%; }
+.bottom-left { bottom: -5%; left: -5%; }
+.name { margin: 0; font-size: 2em; font-weight: 900; line-height: 1.18; }
+.function { margin: .7em 0 .9em; color: #19883d; font-size: 1.5em; font-weight: 800; text-align: center; }
+.function::before { content: ''; display: block; width: 3em; height: 2px; margin: 0 auto .55em; background: #f58220; }
 .card-numbers {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: .5rem .75rem;
-  margin: 1rem 0 0;
-  font-size: .9rem;
-  line-height: 1.4;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .75em 1em;
+  margin: 0 0 2.6em; font-size: 1em; line-height: 1.4;
 }
-
-.card-numbers dt {
-  color: #475569;
-}
-
-.card-numbers dd {
-  margin: 0;
-  color: #17241f;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.footer-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-top: auto;
-}
-
-/* Le conteneur qui sauve la mise */
-.carte-page-wrapper {
-  padding-bottom: 3rem;
-  min-height: 80vh; 
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start; /* Force le contenu à rester en HAUT, pas au milieu */
-  align-items: center; /* Centre la carte horizontalement */
-  width: 100%;
-}
-
-/* Un petit coup de propre sur le message d'attente */
+.card-numbers dt { color: #475569; }
+.card-numbers dd { margin: 0; font-weight: 800; }
+.card-numbers dd::before { content: ':'; float: left; margin-left: -.7em; font-weight: 400; }
+.footer-section { display: flex; align-items: flex-end; justify-content: space-between; gap: 1em; margin-top: auto; }
+.qr-code { width: 32%; }
+.qr-code qrcode { display: block; }
+:host ::ng-deep .qr-code canvas { display: block; width: 100% !important; height: auto !important; }
+.logo { width: 40%; }
+.logo img { display: block; width: 100%; height: auto; }
 .alert-box {
-  background-color: #fff;
-  border-left: 4px solid #f59e0b; /* Ligne orange UNJCI */
-  padding: 1.5rem 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  color: #475569;
-  font-weight: 500;
-  text-align: center;
-  max-width: 500px;
+  max-width: 500px; margin: 2rem auto; padding: 1.5rem 2rem; border-left: 4px solid #f59e0b;
+  border-radius: 8px; background: #fff; box-shadow: 0 4px 6px -1px #0000001a; color: #475569; text-align: center;
 }

@@ -5,6 +5,8 @@ export interface PrintableMember {
   last_name: string;
   member_number: string;
   press_card_number?: string;
+  media_name?: string;
+  employers?: string;
   photo_file_path?: string;
   qr_token: string;
 }
@@ -31,41 +33,44 @@ export async function printMemberCards(
   const style = doc.createElement('style');
   style.textContent = `
     * { box-sizing: border-box; }
-    body { margin: 1rem; background: #f1f3f4; color: #17241f; font: 16px system-ui, sans-serif; }
+    body { margin: 1rem; background: #f1f3f4; color: #111; font: 16px Arial, sans-serif; }
     header { max-width: 52rem; margin: 0 auto 1rem; }
     button { padding: .55rem 1rem; font: inherit; cursor: pointer; }
     main { display: grid; gap: 1.25rem; max-width: 52rem; margin: auto; }
     .card-row { display: flex; justify-content: center; align-items: stretch; gap: 1.25rem; }
     article { display: flex; flex-direction: column; flex: 0 1 25rem; min-width: 0;
-      padding: 2.5em 1.875em; border-radius: 1em; background: #fff;
+      padding: 1.75em 1.6em 2em; border-radius: 1.5em; background: #fff;
       box-shadow: 0 .7em 1.8em #1118281c; break-inside: avoid; overflow-wrap: anywhere; }
+    .card-heading { display: flex; align-items: center; gap: .8em; margin-bottom: 3.5em;
+      font-size: .64em; font-weight: 800; line-height: 1.35; text-align: center; }
+    .card-heading::before, .card-heading::after { content: ''; flex: 0 0 2.2em; height: 2px; background: #f58220; }
     .portrait { position: relative; isolation: isolate; display: grid; place-items: center;
-      width: 81%; aspect-ratio: 1; margin: 0 auto 2.5em; }
+      width: 78%; aspect-ratio: 1; margin: 0 auto 2.8em; }
     .portrait::before, .portrait::after { position: absolute; z-index: -1; content: '';
       width: 23%; aspect-ratio: 1; background: #f58220; }
-    .portrait::before { top: -7%; right: -5%; }
-    .portrait::after { bottom: -7%; left: -5%; }
+    .portrait::before { top: -5%; right: -5%; }
+    .portrait::after { bottom: -5%; left: -5%; }
     .portrait img, .initials { position: absolute; inset: 0; width: 100%; height: 100%; }
     .portrait img { object-fit: cover; }
     .initials { display: grid; place-items: center; background: #eef1ee; font-weight: 800; font-size: 2em; }
-    h2 { margin: 0; color: #111; font-size: 1.875em; line-height: 1.2; font-weight: 900; }
-    .function { margin: .25em 0 1em; color: #475569; font-size: 1.25em; }
-    .badge { align-self: flex-start; padding: .45em 2.1em; border: 2px solid #dc8b3c;
-      border-radius: 99px; color: #b76b24; font-weight: 800; letter-spacing: .06em; }
-    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .3em .75em;
-      margin: .9em 0 1.7em; font-size: .9em; }
+    h2 { margin: 0; color: #111; font-size: 2em; line-height: 1.18; font-weight: 900; }
+    .function { margin: .7em 0 .9em; color: #19883d; font-size: 1.5em; font-weight: 800; text-align: center; }
+    .function::before { content: ''; display: block; width: 3em; height: 2px; margin: 0 auto .55em; background: #f58220; }
+    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75em 1em;
+      margin: 0 0 2.6em; font-size: 1em; line-height: 1.4; }
     dt { color: #475569; }
-    dd { margin: 0; font-weight: 750; }
+    dd { margin: 0; font-weight: 800; }
+    dd::before { content: ':'; float: left; margin-left: -.7em; font-weight: 400; }
     footer { display: flex; justify-content: space-between; align-items: flex-end; gap: .5em; margin-top: auto; }
     .qr { width: 32%; aspect-ratio: 1; }
-    .logo { width: 34%; height: auto; }
+    .logo { width: 40%; height: auto; }
     @page { size: A4 portrait; margin: 10mm; }
     @media print {
       header { display: none; }
       body { margin: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       main { display: block; max-width: none; }
       .card-row { gap: 6mm; margin-bottom: 6mm; break-inside: avoid; }
-      article { flex: 0 1 88mm; padding: 1.9em 1.6em; border: 1px solid #dce1df; box-shadow: none; font-size: 12px; }
+      article { flex: 0 1 88mm; border: 1px solid #dce1df; box-shadow: none; font-size: 12px; }
     }
     @media screen and (max-width: 640px) {
       .card-row { flex-direction: column; align-items: center; }
@@ -88,6 +93,9 @@ export async function printMemberCards(
 
   async function createCard(member: PrintableMember): Promise<HTMLElement> {
     const card = doc.createElement('article');
+    const heading = doc.createElement('div');
+    heading.className = 'card-heading';
+    heading.textContent = 'UNION NATIONALE DES JOURNALISTES DE CÔTE D’IVOIRE';
     const portrait = doc.createElement('div');
     portrait.className = 'portrait';
     const initials = doc.createElement('span');
@@ -95,15 +103,13 @@ export async function printMemberCards(
     initials.textContent = `${member.first_name[0] ?? ''}${member.last_name[0] ?? ''}`;
     portrait.append(initials);
     const name = doc.createElement('h2');
-    name.textContent = `${member.last_name.toLocaleUpperCase('fr')} ${member.first_name}`;
+    name.textContent = `${member.last_name} ${member.first_name}`.toLocaleUpperCase('fr');
     const position = doc.createElement('p');
     position.className = 'function';
-    position.textContent = 'Journaliste';
-    const badge = doc.createElement('span');
-    badge.className = 'badge';
-    badge.textContent = 'MEMBRE';
+    position.textContent = 'JOURNALISTE';
     const numbers = doc.createElement('dl');
     for (const [label, number] of [
+      ['Organe de presse', member.media_name?.trim() || member.employers?.trim() || 'Non renseigné'],
       ['N° carte CIJP', member.press_card_number?.trim() || 'Non renseigné'],
       ['N° carte UNJCI', member.member_number],
     ]) {
@@ -113,7 +119,7 @@ export async function printMemberCards(
       value.textContent = number;
       numbers.append(term, value);
     }
-    card.append(portrait, name, position, badge, numbers);
+    card.append(heading, portrait, name, position, numbers);
     const footer = doc.createElement('footer');
     const qr = doc.createElement('img');
     qr.className = 'qr';

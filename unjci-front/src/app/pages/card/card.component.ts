@@ -29,7 +29,6 @@ export class CardComponent implements OnInit {
     this.http.get(`${environment.apiUrl}/member/profile`, { headers }).subscribe({
       next: (data: any) => {
         this.member = data;
-        this.cdr.detectChanges();
         // Si le membre a un token, on crée le lien de vérification
         if (this.member.qr_token) {
           this.qrCodeUrl = `${environment.frontendUrl || window.location.origin}/verification/${this.member.qr_token}`;
@@ -37,6 +36,7 @@ export class CardComponent implements OnInit {
           // Sinon, on met un texte par défaut pour forcer le QR Code à s'afficher
           this.qrCodeUrl = 'CARTE_EN_ATTENTE_DE_VALIDATION'; 
         }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur lors de la récupération du profil du membre:', err);
