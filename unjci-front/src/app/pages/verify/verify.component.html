@@ -21,11 +21,11 @@
       
       <div class="member-profile">
         <div class="avatar">
-           <img *ngIf="member.photo_file_path" [protectedSrc]="storageUrl + '/' + member.photo_file_path" alt="Photo" />
-           <span *ngIf="!member.photo_file_path">{{member.first_name?.[0]}}{{member.last_name?.[0]}}</span>
+           <img *ngIf="photoUrl" [src]="photoUrl" (error)="photoUrl = null" alt="Photo du membre" />
+           <span *ngIf="!photoUrl">{{member.first_name?.[0]}}{{member.last_name?.[0]}}</span>
         </div>
         <h3>{{ member.last_name | uppercase }} {{ member.first_name }}</h3>
-        <p class="job-title">{{ member.function_title || 'Journaliste' }}</p>
+        <p class="job-title">Journaliste</p>
       </div>
 
       <div class="details-grid">

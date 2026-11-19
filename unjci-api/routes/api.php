@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MemberController; // <-- N'oublie pas l'import !
 use App\Http\Controllers\PressMediaController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CardVerificationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MemberFileController;
 use App\Http\Middleware\EnsureMembershipRequestsOpen;
@@ -19,6 +20,10 @@ Route::get('/health', function () {
 });
 
 Route::get('/press-media', [PressMediaController::class, 'index']);
+Route::middleware('throttle:120,1')->group(function () {
+    Route::get('/verify-card/{token}', [CardVerificationController::class, 'show']);
+    Route::get('/verify-card/{token}/photo', [CardVerificationController::class, 'photo']);
+});
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 
 Route::get('/members/by-card/{cardNumber}', [MemberController::class, 'findByCardNumber']);
@@ -63,6 +68,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/press-media/{media}', [AdminPressMediaController::class, 'updateMedia']);
     Route::delete('/admin/press-media/{media}', [AdminPressMediaController::class, 'destroyMedia']);
     Route::get('/admin/contacts', [ContactController::class, 'index']);
-    Route::get('/verify-card/{token}', [AdminController::class, 'verifyCard']);
 
 });

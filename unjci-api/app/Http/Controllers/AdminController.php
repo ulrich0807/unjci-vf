@@ -476,21 +476,4 @@ class AdminController extends Controller
         }
     }
 
-    public function verifyCard(Request $request, $token)
-    {
-        $user = $request->user();
-
-        // Seuls les admins et les scanners peuvent vérifier une carte
-        if (! in_array($user->role, ['admin', 'scanner'])) {
-            abort(403, 'Accès non autorisé.');
-        }
-
-        $member = Member::where('qr_token', $token)->firstOrFail();
-        abort_unless($member->card_is_valid, 422, 'Cette carte est expirée ou son adhésion n’est pas approuvée.');
-
-        return response()->json([
-            'success' => true,
-            'member' => $member->only(['first_name', 'last_name', 'member_number', 'function_title', 'photo_file_path', 'membership_expires_at']),
-        ]);
-    }
 }

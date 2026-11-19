@@ -147,17 +147,53 @@ class SecurityRegressionTest extends TestCase
         $this->get('/storage/'.$member->photo_file_path)->assertOk();
     }
 
-    public function test_card_verification_checks_expiration_and_approval_and_limits_personal_data(): void
+    public function test_public_card_verification_checks_expiration_and_approval_and_limits_personal_data(): void
     {
         $member = $this->member();
         $member->update(['qr_token' => 'test-qr', 'member_number' => 'UJ26-00001', 'status' => 'approved', 'membership_expires_at' => today()]);
-        Sanctum::actingAs(User::factory()->create(['login' => 'scanner', 'role' => 'scanner']));
-        $this->getJson('/verify-card/test-qr')->assertOk()->assertJsonMissingPath('member.personal_email')
-            ->assertJsonMissingPath('member.press_card_recto');
+        $this->assertGuest();
+        $response = $this->getJson('/verify-card/test-qr')->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('member.member_number', 'UJ26-00001')
+            ->assertJsonPath('member.has_photo', true);
+        $this->assertEqualsCanonicalizing(
+            ['first_name', 'last_name', 'member_number', 'membership_expires_at', 'has_photo'],
+            array_keys($response->json('member')),
+        );
+        $this->getJson('/verify-card/unknown-token')->assertNotFound();
         $member->update(['membership_expires_at' => today()->subDay()]);
         $this->getJson('/verify-card/test-qr')->assertUnprocessable();
         $member->update(['membership_expires_at' => today()->addYear(), 'status' => 'rejected']);
         $this->getJson('/verify-card/test-qr')->assertUnprocessable();
+        $member->update(['status' => 'pending']);
+        $this->getJson('/verify-card/test-qr')->assertUnprocessable();
+    }
+
+    public function test_public_card_photo_requires_a_valid_qr_and_keeps_documents_private(): void
+    {
+        Storage::fake('public');
+        $member = $this->member();
+        $member->update(['qr_token' => 'public-photo-qr', 'member_number' => 'UJ26-00001', 'status' => 'approved', 'membership_expires_at' => today()]);
+        $image = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=');
+
+        foreach (['local', 'public'] as $disk) {
+            $member->update(['photo_file_path' => "members/photos/{$disk}.png"]);
+            Storage::disk($disk)->put($member->photo_file_path, $image);
+            $this->get('/verify-card/public-photo-qr/photo')->assertOk()
+                ->assertHeader('Content-Type', 'image/png')
+                ->assertHeader('X-Content-Type-Options', 'nosniff');
+        }
+
+        $this->getJson('/verify-card/unknown-token/photo')->assertNotFound();
+        $this->getJson('/storage/'.$member->photo_file_path)->assertUnauthorized();
+        $this->getJson('/storage/'.$member->press_card_recto)->assertUnauthorized();
+        $member->update(['status' => 'pending']);
+        $this->getJson('/verify-card/public-photo-qr/photo')->assertUnprocessable();
+        $member->update(['status' => 'approved', 'membership_expires_at' => today()->subDay()]);
+        $this->getJson('/verify-card/public-photo-qr/photo')->assertUnprocessable();
+        $member->update(['membership_expires_at' => today(), 'photo_file_path' => '']);
+        $this->getJson('/verify-card/public-photo-qr')->assertOk()->assertJsonPath('member.has_photo', false);
+        $this->getJson('/verify-card/public-photo-qr/photo')->assertNotFound();
     }
 
     public function test_public_cache_clearing_is_removed_and_contact_requires_consent(): void

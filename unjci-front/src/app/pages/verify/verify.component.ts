@@ -1,22 +1,19 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { AuthService } from '../../core/auth.service';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { ProtectedFileDirective } from '../../core/protected-file.directive';
 
 @Component({
   selector: 'app-verify',
   standalone: true,
-  imports: [CommonModule, ProtectedFileDirective],
+  imports: [CommonModule],
   templateUrl: './verify.component.html',
   styleUrl: './verify.component.css'
 })
 export class VerifyComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
-  private auth = inject(AuthService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
@@ -24,10 +21,9 @@ export class VerifyComponent implements OnInit {
   member: any = null;
   errorMsg: string | null = null;
   isLoading = true;
-  readonly storageUrl = environment.storageUrl;
+  photoUrl: string | null = null;
 
   ngOnInit(): void {
-    // 1. On récupère le code unique dans l'URL (ex: /verification/ABcd123...)
     this.token = this.route.snapshot.paramMap.get('token');
 
     if (!this.token) {
@@ -40,27 +36,24 @@ export class VerifyComponent implements OnInit {
   }
 
   checkAndVerify(token: string): void {
-    const session = this.auth.getSession();
-    
-    // 2. Si l'agent n'est pas connecté, on l'envoie vers le login avec l'URL en mémoire
-    if (!session || !session.token) {
-      this.router.navigate(['/login'], { queryParams: { returnUrl: `/verification/${token}` } });
-      return;
-    }
-
-    // 3. Si l'agent est connecté, on interroge Laravel
-    const headers = new HttpHeaders({ 'Authorization': `Bearer ${session.token}` });
-
-    this.http.get(`${environment.apiUrl}/verify-card/${token}`, { headers }).subscribe({
+    this.isLoading = true;
+    this.member = null;
+    this.photoUrl = null;
+    this.errorMsg = null;
+    const verificationUrl = `${environment.apiUrl}/verify-card/${encodeURIComponent(token)}`;
+    this.http.get(verificationUrl).subscribe({
       next: (res: any) => {
         this.member = res.member;
+        this.photoUrl = res.member.has_photo ? `${verificationUrl}/photo` : null;
         this.isLoading = false;
         this.cdr.markForCheck();
       },
       error: (error) => {
-        this.errorMsg = error.status === 401 ? 'Votre session a expiré. Reconnectez-vous.'
-          : error.status === 403 ? 'Votre compte ne permet pas de vérifier les cartes.'
-          : "Cette carte est introuvable, expirée ou son adhésion n’est pas approuvée.";
+        this.errorMsg = error.status === 404 || error.status === 422
+          ? "Cette carte est introuvable, expirée ou son adhésion n’est pas approuvée."
+          : error.status === 429
+          ? 'Trop de vérifications. Réessayez dans une minute.'
+          : 'La vérification est momentanément indisponible. Réessayez dans quelques instants.';
         this.isLoading = false;
         this.cdr.markForCheck();
       }
