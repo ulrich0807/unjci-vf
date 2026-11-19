@@ -38,14 +38,14 @@ export async function printMemberCards(
     button { padding: .55rem 1rem; font: inherit; cursor: pointer; }
     main { display: grid; gap: 1.25rem; max-width: 52rem; margin: auto; }
     .card-row { display: flex; justify-content: center; align-items: stretch; gap: 1.25rem; }
-    article { display: flex; flex-direction: column; flex: 0 1 25rem; min-width: 0;
-      padding: 1.75em 1.6em 2em; border-radius: 1.5em; background: #fff;
+    article { display: flex; flex-direction: column; flex: 0 0 5.39cm; width: 5.39cm; height: 8.56cm;
+      padding: 2.5mm; border-radius: 3mm; background: #fff; font-size: 9px;
       box-shadow: 0 .7em 1.8em #1118281c; break-inside: avoid; overflow-wrap: anywhere; }
-    .card-heading { display: flex; align-items: center; gap: .8em; margin-bottom: 3.5em;
-      font-size: .64em; font-weight: 800; line-height: 1.35; text-align: center; }
-    .card-heading::before, .card-heading::after { content: ''; flex: 0 0 2.2em; height: 2px; background: #f58220; }
+    .card-heading { display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 1.6em;
+      flex-shrink: 0; font-size: 0.56em; font-weight: 800; line-height: 1.2; text-align: center; white-space: nowrap; }
+    .card-heading::before, .card-heading::after { content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220; }
     .portrait { position: relative; isolation: isolate; display: grid; place-items: center;
-      width: 78%; aspect-ratio: 1; margin: 0 auto 2.8em; }
+      flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto .6em; }
     .portrait::before, .portrait::after { position: absolute; z-index: -1; content: '';
       width: 23%; aspect-ratio: 1; background: #f58220; }
     .portrait::before { top: -5%; right: -5%; }
@@ -53,16 +53,16 @@ export async function printMemberCards(
     .portrait img, .initials { position: absolute; inset: 0; width: 100%; height: 100%; }
     .portrait img { object-fit: cover; }
     .initials { display: grid; place-items: center; background: #eef1ee; font-weight: 800; font-size: 2em; }
-    h2 { margin: 0; color: #111; font-size: 2em; line-height: 1.18; font-weight: 900; }
-    .function { margin: .7em 0 .9em; color: #19883d; font-size: 1.5em; font-weight: 800; text-align: center; }
-    .function::before { content: ''; display: block; width: 3em; height: 2px; margin: 0 auto .55em; background: #f58220; }
-    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75em 1em;
-      margin: 0 0 2.6em; font-size: 1em; line-height: 1.4; }
+    h2 { margin: 0; color: #111; font-size: 1.35em; line-height: 1.1; font-weight: 900; }
+    .function { margin: .3em 0 .4em; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
+    .function::before { content: ''; display: block; width: 3em; height: 1px; margin: 0 auto .3em; background: #f58220; }
+    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .35em 1em;
+      margin: 0 0 .5em; font-size: .82em; line-height: 1.1; }
     dt { color: #475569; }
     dd { margin: 0; font-weight: 800; }
     dd::before { content: ':'; float: left; margin-left: -.7em; font-weight: 400; }
-    footer { display: flex; justify-content: space-between; align-items: flex-end; gap: .5em; margin-top: auto; }
-    .qr { width: 32%; aspect-ratio: 1; }
+    footer { display: flex; flex-shrink: 0; justify-content: space-between; align-items: flex-end; gap: .5em; margin-top: auto; }
+    .qr { width: 27%; aspect-ratio: 1; }
     .logo { width: 40%; height: auto; }
     @page { size: A4 portrait; margin: 10mm; }
     @media print {
@@ -70,11 +70,11 @@ export async function printMemberCards(
       body { margin: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       main { display: block; max-width: none; }
       .card-row { gap: 6mm; margin-bottom: 6mm; break-inside: avoid; }
-      article { flex: 0 1 88mm; border: 1px solid #dce1df; box-shadow: none; font-size: 12px; }
+      article { box-shadow: none; }
     }
     @media screen and (max-width: 640px) {
       .card-row { flex-direction: column; align-items: center; }
-      article { width: min(100%, 25rem); flex-basis: auto; font-size: clamp(12px, 4vw, 16px); }
+      article { flex-basis: auto; }
     }
   `;
   doc.head.append(viewport, style);
@@ -89,6 +89,9 @@ export async function printMemberCards(
   print.addEventListener('click', () => preview.print());
   header.append(message, print);
   const list = doc.createElement('main');
+  const format = doc.createElement('p');
+  format.textContent = 'Format des cartes : 5,39 × 8,56 cm. Imprimez à 100 % (taille réelle).';
+  header.append(format);
   doc.body.replaceChildren(header, list);
 
   async function createCard(member: PrintableMember): Promise<HTMLElement> {
