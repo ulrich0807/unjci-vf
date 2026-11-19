@@ -41,11 +41,11 @@ export async function printMemberCards(
     article { display: flex; flex-direction: column; flex: 0 0 5.39cm; width: 5.39cm; height: 8.56cm;
       padding: 2.5mm; border-radius: 3mm; background: #fff; font-size: 9px;
       box-shadow: 0 .7em 1.8em #1118281c; break-inside: avoid; overflow-wrap: anywhere; }
-    .card-heading { display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 1.6em;
+    .card-heading { display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 4mm;
       flex-shrink: 0; font-size: 0.56em; font-weight: 800; line-height: 1.2; text-align: center; white-space: nowrap; }
     .card-heading::before, .card-heading::after { content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220; }
     .portrait { position: relative; isolation: isolate; display: grid; place-items: center;
-      flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto .6em; }
+      flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto; }
     .portrait::before, .portrait::after { position: absolute; z-index: -1; content: '';
       width: 23%; aspect-ratio: 1; background: #f58220; }
     .portrait::before { top: -5%; right: -5%; }
@@ -53,15 +53,16 @@ export async function printMemberCards(
     .portrait img, .initials { position: absolute; inset: 0; width: 100%; height: 100%; }
     .portrait img { object-fit: cover; }
     .initials { display: grid; place-items: center; background: #eef1ee; font-weight: 800; font-size: 2em; }
+    .info-section { display: flex; flex: 1 0 auto; flex-direction: column; justify-content: space-evenly; }
     h2 { margin: 0; color: #111; font-size: 1.35em; line-height: 1.1; font-weight: 900; }
-    .function { margin: .3em 0 .4em; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
+    .function { margin: 0; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
     .function::before { content: ''; display: block; width: 3em; height: 1px; margin: 0 auto .3em; background: #f58220; }
-    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .35em 1em;
-      margin: 0 0 .5em; font-size: .82em; line-height: 1.1; }
+    dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .45em 1em;
+      margin: 0; font-size: .82em; line-height: 1.15; }
     dt { color: #475569; }
     dd { margin: 0; font-weight: 800; }
     dd::before { content: ':'; float: left; margin-left: -.7em; font-weight: 400; }
-    footer { display: flex; flex-shrink: 0; justify-content: space-between; align-items: flex-end; gap: .5em; margin-top: auto; }
+    footer { display: flex; flex-shrink: 0; justify-content: space-between; align-items: flex-end; gap: .5em; }
     .qr { width: 27%; aspect-ratio: 1; }
     .logo { width: 40%; height: auto; }
     @page { size: A4 portrait; margin: 10mm; }
@@ -122,7 +123,10 @@ export async function printMemberCards(
       value.textContent = number;
       numbers.append(term, value);
     }
-    card.append(heading, portrait, name, position, numbers);
+    const info = doc.createElement('div');
+    info.className = 'info-section';
+    info.append(name, position, numbers);
+    card.append(heading, portrait, info);
     const footer = doc.createElement('footer');
     const qr = doc.createElement('img');
     qr.className = 'qr';

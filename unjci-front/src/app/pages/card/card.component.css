@@ -9,13 +9,13 @@
   font: 9px Arial, sans-serif; overflow-wrap: anywhere;
 }
 .card-heading {
-  display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 1.6em;
+  display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 4mm;
   flex-shrink: 0; font-size: 0.56em; font-weight: 800; line-height: 1.2; text-align: center; white-space: nowrap;
 }
 .card-heading::before, .card-heading::after {
   content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220;
 }
-.photo-wrapper { position: relative; flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto .6em; }
+.photo-wrapper { position: relative; flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto; }
 .photo-frame {
   position: relative; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%;
   background: #eef1ee; font-size: 2em; font-weight: 800;
@@ -24,17 +24,18 @@
 .orange-square { position: absolute; width: 23%; aspect-ratio: 1; background: #f58220; }
 .top-right { top: -5%; right: -5%; }
 .bottom-left { bottom: -5%; left: -5%; }
+.info-section { display: flex; flex: 1 0 auto; flex-direction: column; justify-content: space-evenly; }
 .name { margin: 0; font-size: 1.35em; font-weight: 900; line-height: 1.1; }
-.function { margin: .3em 0 .4em; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
+.function { margin: 0; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
 .function::before { content: ''; display: block; width: 3em; height: 1px; margin: 0 auto .3em; background: #f58220; }
 .card-numbers {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .35em 1em;
-  margin: 0 0 .5em; font-size: .82em; line-height: 1.1;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .45em 1em;
+  margin: 0; font-size: .82em; line-height: 1.15;
 }
 .card-numbers dt { color: #475569; }
 .card-numbers dd { margin: 0; font-weight: 800; }
 .card-numbers dd::before { content: ':'; float: left; margin-left: -.7em; font-weight: 400; }
-.footer-section { display: flex; flex-shrink: 0; align-items: flex-end; justify-content: space-between; gap: 1em; margin-top: auto; }
+.footer-section { display: flex; flex-shrink: 0; align-items: flex-end; justify-content: space-between; gap: 1em; }
 .qr-code { width: 27%; }
 .qr-code qrcode { display: block; }
 :host ::ng-deep .qr-code canvas { display: block; width: 100% !important; height: auto !important; }
