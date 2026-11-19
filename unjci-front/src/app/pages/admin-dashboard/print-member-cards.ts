@@ -43,7 +43,8 @@ export async function printMemberCards(
       box-shadow: 0 .7em 1.8em #1118281c; break-inside: avoid; overflow-wrap: anywhere; }
     .card-heading { display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 2mm;
       flex-shrink: 0; font-size: 0.56em; font-weight: 800; line-height: 1.35; text-align: center; white-space: nowrap; }
-    .card-heading::before, .card-heading::after { content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220; }
+    .card-heading::before, .card-heading::after { content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220;
+      align-self: flex-start; margin-top: calc(.675em - .5px); }
     .portrait { position: relative; isolation: isolate; display: grid; place-items: center;
       flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto; }
     .portrait::before, .portrait::after { position: absolute; z-index: -1; content: '';

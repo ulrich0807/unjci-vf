@@ -14,6 +14,7 @@
 }
 .card-heading::before, .card-heading::after {
   content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220;
+  align-self: flex-start; margin-top: calc(.675em - .5px);
 }
 .photo-wrapper { position: relative; flex-shrink: 0; width: 56%; aspect-ratio: 1; margin: 0 auto; }
 .photo-frame {
