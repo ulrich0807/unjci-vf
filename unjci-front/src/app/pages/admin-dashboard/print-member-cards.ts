@@ -35,7 +35,8 @@ export async function printMemberCards(
     * { box-sizing: border-box; }
     body { margin: 1rem; background: #f1f3f4; color: #111; font: 16px Arial, sans-serif; }
     header { max-width: 52rem; margin: 0 auto 1rem; }
-    button { padding: .55rem 1rem; font: inherit; cursor: pointer; }
+    button, select { padding: .55rem 1rem; font: inherit; cursor: pointer; }
+    label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .75rem; }
     main { display: grid; gap: 1.25rem; max-width: 52rem; margin: auto; }
     .card-row { display: flex; justify-content: center; align-items: stretch; gap: 1.25rem; }
     article { display: flex; flex-direction: column; flex: 0 0 5.39cm; width: 5.39cm; height: 8.56cm;
@@ -66,12 +67,10 @@ export async function printMemberCards(
     footer { display: flex; flex-shrink: 0; justify-content: space-between; align-items: flex-end; gap: .5em; }
     .qr { width: 27%; aspect-ratio: 1; }
     .logo { width: 40%; height: auto; }
-    @page { size: A4 portrait; margin: 10mm; }
     @media print {
       header { display: none; }
       body { margin: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       main { display: block; max-width: none; }
-      .card-row { gap: 6mm; margin-bottom: 6mm; break-inside: avoid; }
       article { box-shadow: none; }
     }
     @media screen and (max-width: 640px) {
@@ -79,7 +78,8 @@ export async function printMemberCards(
       article { flex-basis: auto; }
     }
   `;
-  doc.head.append(viewport, style);
+  const pageStyle = doc.createElement('style');
+  doc.head.append(viewport, style, pageStyle);
   const header = doc.createElement('header');
   const message = doc.createElement('p');
   message.setAttribute('role', 'status');
@@ -89,10 +89,44 @@ export async function printMemberCards(
   print.textContent = 'Imprimer';
   print.disabled = true;
   print.addEventListener('click', () => preview.print());
-  header.append(message, print);
+  const formatLabel = doc.createElement('label');
+  formatLabel.textContent = 'Support d’impression';
+  const formatSelect = doc.createElement('select');
+  for (const [value, label] of [
+    ['card', 'Carte PVC — 53,9 × 85,6 mm (une carte par page)'],
+    ['a4', 'Feuille A4 — plusieurs cartes à découper'],
+  ]) {
+    const option = doc.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    formatSelect.append(option);
+  }
+  formatLabel.append(formatSelect);
+  header.append(message, formatLabel, print);
   const list = doc.createElement('main');
   const format = doc.createElement('p');
-  format.textContent = 'Format des cartes : 5,39 × 8,56 cm. Imprimez à 100 % (taille réelle).';
+  function updateFormat(): void {
+    const cardFormat = formatSelect.value === 'card';
+    pageStyle.textContent = cardFormat ? `
+      @page { size: 53.9mm 85.6mm; margin: 0; }
+      @media print {
+        html, body, main { width: 53.9mm; margin: 0; padding: 0; }
+        .card-row { display: block; margin: 0; break-inside: auto; }
+        article { margin: 0; break-after: page; }
+        .card-row:last-child article:last-child { break-after: auto; }
+      }
+    ` : `
+      @page { size: A4 portrait; margin: 10mm; }
+      @media print {
+        .card-row { gap: 6mm; margin-bottom: 6mm; break-inside: avoid; }
+      }
+    `;
+    format.textContent = cardFormat
+      ? 'Imprimante à cartes : papier 53,9 × 85,6 mm, orientation portrait, échelle 100 % (taille réelle), marges aucune. Désactivez les en-têtes et pieds de page.'
+      : 'Papier A4, orientation portrait, échelle 100 % (taille réelle). Chaque carte mesure 5,39 × 8,56 cm. Désactivez les en-têtes et pieds de page.';
+  }
+  formatSelect.addEventListener('change', updateFormat);
+  updateFormat();
   header.append(format);
   doc.body.replaceChildren(header, list);
 
