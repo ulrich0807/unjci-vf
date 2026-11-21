@@ -6,7 +6,6 @@ import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { ProtectedFileDirective } from '../../core/protected-file.directive';
-import { MembershipClosedDirective } from '../../core/membership-closure';
 
 type PaymentMode = 'adhesion' | 'renewal';
 type MembershipStage = 'awaiting_payment' | 'payment_pending' | 'under_review' | 'approved' | 'rejected';
@@ -37,7 +36,7 @@ const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; descriptio
 @Component({
   selector: 'app-member-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective, MembershipClosedDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective],
   templateUrl: './member-dashboard.component.html',
   styleUrl: './member-dashboard.component.css'
 })
@@ -51,6 +50,8 @@ export class MemberDashboard implements OnInit {
   expectedAmount = 10000;
   paymentMode: PaymentMode = 'adhesion';
   membershipStage: MembershipStage = 'awaiting_payment';
+  savingPayment = false;
+  paymentError = '';
   
   // Résultat du paiement Wave
   paymentResult: 'success' | 'cancel' | null = null;
@@ -281,6 +282,34 @@ export class MemberDashboard implements OnInit {
     });
   }
 
+  initiateWavePayment(): void {
+    if (this.savingPayment) return;
+    const token = this.auth.getSession()?.token;
+    if (!token) {
+      this.logout();
+      return;
+    }
+    this.paymentError = '';
+    this.savingPayment = true;
+    this.http.post<{ checkout_url?: string }>(`${environment.apiUrl}/member/payment/wave/initiate`,
+      { paymentType: this.paymentMode }, { headers: { Authorization: `Bearer ${token}` } }).subscribe({
+      next: response => {
+        this.savingPayment = false;
+        if (response.checkout_url) {
+          window.location.href = response.checkout_url;
+        } else {
+          this.paymentError = 'Impossible de récupérer le lien de paiement Wave.';
+        }
+        this.cdr.markForCheck();
+      },
+      error: error => {
+        this.savingPayment = false;
+        this.paymentError = error.error?.message || 'Une erreur est survenue lors de la connexion à Wave.';
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   get isMissingOldCards(): boolean {
     return this.paymentMode === 'renewal' && (!this.member?.old_card_recto_path || !this.member?.old_card_verso_path);
   }
@@ -378,6 +407,7 @@ export class MemberDashboard implements OnInit {
   }
 
   private resolvePaymentMode(member: any): PaymentMode {
+    if (member?.member_number) return 'renewal';
     const requestType = String(member?.request_type || member?.requestType || '').toLowerCase();
     if (requestType === 'renewal') return 'renewal';
     if (requestType === 'adhesion') return 'adhesion';

@@ -284,8 +284,8 @@
         <strong>Paiement en cours de confirmation</strong>
         <p>Votre paiement de {{ expectedAmount | number:'1.0-0' }} FCFA a été transmis. Vous serez informé dès sa confirmation.</p>
         <div style="margin-top: 1rem;">
-          <button type="button" class="outline-button" appMembershipClosed>
-            Réessayer avec Wave
+          <button type="button" class="outline-button" (click)="initiateWavePayment()" [disabled]="savingPayment">
+            {{ savingPayment ? 'Redirection Wave…' : 'Réessayer avec Wave' }}
           </button>
         </div>
       </div>
@@ -308,14 +308,16 @@
             Le numéro éventuellement déclaré dans votre demande sera vérifié manuellement par l’UNJCI avant de devenir officiel.
           </p>
           <div class="option-actions">
-            <button type="button" class="wave-button" appMembershipClosed>
-              Payer avec Wave
+            <button type="button" class="wave-button" (click)="initiateWavePayment()" [disabled]="savingPayment">
+              {{ savingPayment ? 'Redirection Wave…' : 'Payer avec Wave' }}
             </button>
           </div>
         </article>
       </div>
 
     </section>
+
+    <p *ngIf="paymentError" class="error-message" role="alert">{{ paymentError }}</p>
 
     <section id="historique" class="content-card history-card" *ngIf="history.length > 0">
       <div class="section-head">
@@ -351,7 +353,7 @@
     <section *ngIf="!isLoading" class="empty-state">
       <h2>Aucun dossier membre associé</h2>
       <p>Effectuez d’abord une demande d’adhésion pour alimenter votre espace membre.</p>
-      <button type="button" appMembershipClosed class="primary-button">Faire une demande</button>
+      <a routerLink="/application" class="primary-button">Faire une demande</a>
     </section>
   </ng-template>
 </div>

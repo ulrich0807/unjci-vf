@@ -121,4 +121,27 @@ describe('MemberDashboard membership workflow', () => {
     expect(fixture.nativeElement.textContent).toContain('Paiement en cours de confirmation');
     expect(fixture.nativeElement.textContent).not.toContain('Renseigner le paiement');
   });
+
+  it('offers renewal to an approved member whose original request was an adhesion', () => {
+    loadProfile({ status: 'approved', membership_stage: 'approved', member_number: 'UJ26-00001' });
+    expect(component.paymentMode).toBe('renewal');
+    expect(component.expectedAmount).toBe(5000);
+  });
+
+  it.each(['adhesion', 'renewal'])('enables the Wave button for %s and handles a failed checkout', type => {
+    loadProfile({ request_type: type });
+    const button = fixture.nativeElement.querySelector('button.wave-button') as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    button.click();
+    fixture.detectChanges();
+    expect(button.disabled).toBe(true);
+    component.initiateWavePayment();
+    const request = httpTesting.expectOne(`${environment.apiUrl}/member/payment/wave/initiate`);
+    expect(request.request.body).toEqual({ paymentType: type });
+    expect(request.request.headers.get('Authorization')).toBe('Bearer member-token');
+    request.flush({ message: 'Wave est momentanément indisponible.' }, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(button.disabled).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Wave est momentanément indisponible.');
+  });
 });

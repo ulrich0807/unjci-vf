@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { MembershipClosedDirective } from '../../core/membership-closure';
+import { RouterLink } from '@angular/router';
 import { NgFor, NgClass,CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [MembershipClosedDirective, NgFor, NgClass, CommonModule],
+  imports: [RouterLink, NgFor, NgClass, CommonModule],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
