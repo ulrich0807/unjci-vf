@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\MemberNumberAllocator;
+use App\Services\MembershipAvailability;
 use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -51,6 +52,7 @@ class AdminController extends Controller
             'members' => $members,
             'payments' => $payments, // On renvoie tout à Angular
             'myPermissions' => $request->user()->permissions ?? [],
+            'membershipAvailability' => app(MembershipAvailability::class)->status(),
         ]);
     }
 

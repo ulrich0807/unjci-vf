@@ -7,6 +7,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom, Observable, timeout } from 'rxjs';
 import { ProtectedFileDirective } from '../../core/protected-file.directive';
+import { MembershipAvailability, MembershipClosure } from '../../core/membership-closure';
 import type { PrintableMember } from './print-member-cards';
 import {
   ManagedPressMedia,
@@ -49,6 +50,10 @@ interface LoginAuditResponse {
   styleUrl: './admin-dashboard.component.css'
 })
 export class AdminDashboard implements OnInit {
+  private readonly membershipClosure = inject(MembershipClosure);
+  membershipAvailability: MembershipAvailability | null = null;
+  savingMembershipAvailability = false;
+  membershipAvailabilityError = '';
   isAdmin = false;
   myPermissions: string[] = [];
   admins: any[] = [];
@@ -171,6 +176,29 @@ export class AdminDashboard implements OnInit {
     this.loadAdminData();
   }
 
+  toggleMembershipAvailability(): void {
+    if (!this.isAdmin || !this.membershipAvailability || this.savingMembershipAvailability) return;
+    const token = this.auth.getSession()?.token;
+    if (!token) return;
+    this.savingMembershipAvailability = true;
+    this.membershipAvailabilityError = '';
+    this.http.put<MembershipAvailability>(`${environment.apiUrl}/admin/membership/availability`,
+      { requests_closed: !this.membershipAvailability.requests_closed },
+      { headers: { Authorization: `Bearer ${token}` } }).subscribe({
+      next: status => {
+        this.membershipAvailability = status;
+        this.membershipClosure.apply(status);
+        this.savingMembershipAvailability = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.membershipAvailabilityError = 'Le changement n’a pas été enregistré. Réessayez.';
+        this.savingMembershipAvailability = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   hasPermission(permission: string): boolean {
     if (this.isAdmin) {
       return true;
@@ -196,6 +224,8 @@ export class AdminDashboard implements OnInit {
         this.members = data.members || [];
         this.allPayments = data.payments || [];
         this.myPermissions = data.myPermissions || [];
+        this.membershipAvailability = data.membershipAvailability || null;
+        if (this.membershipAvailability) this.membershipClosure.apply(this.membershipAvailability);
         if (!this.permissionSectionsLoaded) {
           this.permissionSectionsLoaded = true;
           if (this.hasPermission('manage_media')) this.loadPressCompanies();

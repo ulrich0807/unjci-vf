@@ -49,7 +49,9 @@ describe('AdminDashboard', () => {
     component = fixture.componentInstance;
     render();
 
-    httpTesting.expectOne(`${environment.apiUrl}/admin/dashboard`).flush({ members: [], payments: [] });
+    httpTesting.expectOne(`${environment.apiUrl}/admin/dashboard`).flush({ members: [], payments: [],
+      membershipAvailability: { requests_closed: true, closure_message: 'Demandes fermées' },
+    });
     httpTesting.expectOne(`${environment.apiUrl}/admin/press-companies`).flush({ data: initialCompanies });
     const loginAuditRequest = httpTesting.expectOne(request => request.url === `${environment.apiUrl}/admin/login-audits`);
     expect(loginAuditRequest.request.headers.get('Authorization')).toBe('Bearer admin-token');
@@ -71,6 +73,39 @@ describe('AdminDashboard', () => {
     httpTesting.verify();
     sessionStorage.clear();
     vi.restoreAllMocks();
+  });
+
+  it('lets the main admin reopen both membership requests and updates the button after saving', () => {
+    const button = fixture.nativeElement.querySelector('[aria-labelledby="membership-availability-title"] button') as HTMLButtonElement;
+    expect(button.textContent).toContain('Activer les adhésions');
+    button.click();
+    render();
+    expect(button.disabled).toBe(true);
+    const request = httpTesting.expectOne(`${environment.apiUrl}/admin/membership/availability`);
+    expect(request.request.headers.get('Authorization')).toBe('Bearer admin-token');
+    expect(request.request.body).toEqual({ requests_closed: false });
+    request.flush({ requests_closed: false, closure_message: 'Demandes fermées' });
+    render();
+    expect(button.disabled).toBe(false);
+    expect(button.textContent).toContain('Désactiver les adhésions');
+    button.click();
+    const close = httpTesting.expectOne(`${environment.apiUrl}/admin/membership/availability`);
+    expect(close.request.body).toEqual({ requests_closed: true });
+    close.flush({ requests_closed: true, closure_message: 'Demandes fermées' });
+  });
+
+  it('keeps the current status when saving fails and hides the control from delegated admins', () => {
+    component.toggleMembershipAvailability();
+    httpTesting.expectOne(`${environment.apiUrl}/admin/membership/availability`)
+      .flush({}, { status: 500, statusText: 'Unavailable' });
+    render();
+    expect(component.membershipAvailability?.requests_closed).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Le changement n’a pas été enregistré');
+    component.isAdmin = false;
+    render();
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="membership-availability-title"]')).toBeNull();
+    component.toggleMembershipAvailability();
+    httpTesting.expectNone(`${environment.apiUrl}/admin/membership/availability`);
   });
 
   it('reopens a rejected dossier through the existing status endpoint', () => {

@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { ProtectedFileDirective } from '../../core/protected-file.directive';
+import { MembershipActionDirective, MembershipClosure } from '../../core/membership-closure';
 
 type PaymentMode = 'adhesion' | 'renewal';
 type MembershipStage = 'awaiting_payment' | 'payment_pending' | 'under_review' | 'approved' | 'rejected';
@@ -36,7 +37,7 @@ const MEMBERSHIP_STAGE_COPY: Record<MembershipStage, { label: string; descriptio
 @Component({
   selector: 'app-member-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ProtectedFileDirective, MembershipActionDirective],
   templateUrl: './member-dashboard.component.html',
   styleUrl: './member-dashboard.component.css'
 })
@@ -46,6 +47,7 @@ export class MemberDashboard implements OnInit {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
   private fb = inject(FormBuilder);
+  private readonly membershipClosure = inject(MembershipClosure);
 
   expectedAmount = 10000;
   paymentMode: PaymentMode = 'adhesion';
@@ -283,6 +285,10 @@ export class MemberDashboard implements OnInit {
   }
 
   initiateWavePayment(): void {
+    if (this.membershipClosure.closed()) {
+      this.membershipClosure.show();
+      return;
+    }
     if (this.savingPayment) return;
     const token = this.auth.getSession()?.token;
     if (!token) {

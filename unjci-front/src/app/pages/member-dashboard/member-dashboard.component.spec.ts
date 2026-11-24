@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { MemberDashboard } from './member-dashboard.component';
+import { MembershipClosure } from '../../core/membership-closure';
 
 describe('MemberDashboard membership workflow', () => {
   let fixture: ComponentFixture<MemberDashboard>;
@@ -23,6 +24,7 @@ describe('MemberDashboard membership workflow', () => {
     }).compileComponents();
 
     httpTesting = TestBed.inject(HttpTestingController);
+    TestBed.inject(MembershipClosure).apply({ requests_closed: false, closure_message: 'Demandes fermées' });
   });
 
   afterEach(() => {
@@ -52,6 +54,20 @@ describe('MemberDashboard membership workflow', () => {
     });
     fixture.detectChanges();
   }
+
+  it('blocks Wave and shows the closure notice when requests are disabled', () => {
+    loadProfile();
+    const closure = TestBed.inject(MembershipClosure);
+    closure.apply({ requests_closed: true, closure_message: 'Demandes fermées' });
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button.wave-button') as HTMLButtonElement;
+    expect(button.classList.contains('membership-closed-action')).toBe(true);
+    button.click();
+    httpTesting.expectOne(`${environment.apiUrl}/membership/availability`)
+      .flush({ requests_closed: true, closure_message: 'Demandes fermées' });
+    expect(closure.visible()).toBe(true);
+    httpTesting.expectNone(`${environment.apiUrl}/member/payment/wave/initiate`);
+  });
 
   it('offers only the first-membership payment before a number is assigned', () => {
     loadProfile();

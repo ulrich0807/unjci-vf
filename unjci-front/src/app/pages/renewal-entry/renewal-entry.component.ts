@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService, UserRole } from '../../core/auth.service';
+import { MembershipActionDirective } from '../../core/membership-closure';
 
 @Component({
   selector: 'app-renewal-entry',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, MembershipActionDirective],
   templateUrl: './renewal-entry.component.html',
   styleUrl: './renewal-entry.component.css',
 })

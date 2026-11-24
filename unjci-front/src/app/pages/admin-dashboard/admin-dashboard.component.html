@@ -10,6 +10,24 @@
     </div>
   </header>
 
+  <section class="members-card" *ngIf="isAdmin" aria-labelledby="membership-availability-title">
+    <div class="card-heading">
+      <div>
+        <span>ABONNEMENTS</span>
+        <h2 id="membership-availability-title">Adhésions et renouvellements</h2>
+        <p *ngIf="membershipAvailability">
+          Les demandes sont <strong>{{ membershipAvailability.requests_closed ? 'désactivées' : 'activées' }}</strong>.
+          Ce réglage s’applique aux deux parcours et à leurs paiements.
+        </p>
+      </div>
+      <button type="button" class="catalog-button primary" (click)="toggleMembershipAvailability()"
+              [disabled]="!membershipAvailability || savingMembershipAvailability">
+        {{ savingMembershipAvailability ? 'Enregistrement…' : membershipAvailability?.requests_closed ? 'Activer les adhésions et renouvellements' : 'Désactiver les adhésions et renouvellements' }}
+      </button>
+    </div>
+    <p class="error-message" role="alert" *ngIf="membershipAvailabilityError">{{ membershipAvailabilityError }}</p>
+  </section>
+
   <section class="metrics">
     <article><small>Total adhérents</small><strong>{{ members.length }}</strong><span>Registre complet</span></article>
     <article><small>Actifs</small><strong>{{ count('approved') }}</strong><span class="green">Cartes valides</span></article>

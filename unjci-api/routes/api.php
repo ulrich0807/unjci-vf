@@ -7,6 +7,7 @@ use App\Http\Controllers\MemberController; // <-- N'oublie pas l'import !
 use App\Http\Controllers\PressMediaController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CardVerificationController;
+use App\Http\Controllers\MembershipAvailabilityController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MemberFileController;
 use App\Http\Middleware\EnsureMembershipRequestsOpen;
@@ -20,6 +21,7 @@ Route::get('/health', function () {
 });
 
 Route::get('/press-media', [PressMediaController::class, 'index']);
+Route::get('/membership/availability', [MembershipAvailabilityController::class, 'show']);
 Route::middleware('throttle:120,1')->group(function () {
     Route::get('/verify-card/{token}', [CardVerificationController::class, 'show']);
     Route::get('/verify-card/{token}/photo', [CardVerificationController::class, 'photo']);
@@ -51,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Routes de l'Administration
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+    Route::put('/admin/membership/availability', [MembershipAvailabilityController::class, 'update']);
     Route::get('/admin/admins', [AdminController::class, 'listAdmins']);
     Route::post('/admin/admins', [AdminController::class, 'storeAdmin']);
     Route::put('/admin/admins/{id}', [AdminController::class, 'updateAdmin']);
