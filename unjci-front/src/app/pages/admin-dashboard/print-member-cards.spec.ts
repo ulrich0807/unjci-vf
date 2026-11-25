@@ -27,7 +27,9 @@ describe('Card back printing', () => {
       expect(card.querySelector('[lang="fr"]')?.textContent).toContain('toute l’aide et toutes les facilités');
       expect(card.querySelector('[lang="en"]')?.textContent).toContain('every assistance and courtesy');
       expect(card.textContent).toContain('contacts@unjci.ci');
-      expect(card.querySelector('.back-edition')?.textContent).toBe('2026');
+      expect(card.querySelector('.back-edition')?.textContent).toBe('UNJCI 2026');
+      expect(card.textContent).not.toContain('FRANÇAIS');
+      expect(card.textContent).not.toContain('ENGLISH');
       expect(card.textContent).not.toContain('CONTACT UNJCI');
       expect(card.querySelector('.qr')).toBeNull();
     }

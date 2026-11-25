@@ -12,8 +12,6 @@ export const MEMBER_CARD_BACK_STYLES = `
   .back-logo { display: block; width: 20mm; height: auto; margin: 0 auto 1.5mm; }
   .back-brand p { margin: 0; font-size: 0.76em; font-weight: 800; line-height: 1.4; letter-spacing: .035em; }
   .back-edition { display: inline-block; margin-top: 1.5mm; padding: .6mm 2mm; border: .2mm solid #168343; border-radius: 2mm; color: #126438; font-size: .9em; font-weight: 800; letter-spacing: .1em; }
-  .back-language { margin: 0 0 1.3mm; color: #177343; font-size: .62em; font-weight: 800; letter-spacing: .16em; }
-  .back-language::before { content: ''; display: inline-block; width: 3mm; height: .4mm; margin-right: 1.4mm; vertical-align: middle; background: #f58220; }
   .back-copy p { margin: 0; font-size: 1em; font-weight: 600; line-height: 1.45; }
   .back-copy-english { padding-top: 2.3mm; border-top: .2mm solid #cbded1; }
   .back-copy-english p { font-size: .95em; font-weight: 400; color: #375749; }
@@ -36,26 +34,23 @@ export async function createMemberCardBack(doc: Document, logoUrl: string): Prom
   title.append('UNION NATIONALE DES JOURNALISTES', doc.createElement('br'), 'CÔTE D’IVOIRE');
   const edition = doc.createElement('span');
   edition.className = 'back-edition';
-  edition.textContent = '2026';
+  edition.textContent = 'UNJCI 2026';
   brand.append(logo, title, edition);
 
-  function section(language: string, label: string, text: string, className: string): HTMLElement {
+  function section(language: string, text: string, className: string): HTMLElement {
     const section = doc.createElement('section');
     section.className = className;
     section.lang = language;
-    const heading = doc.createElement('h3');
-    heading.className = 'back-language';
-    heading.textContent = label;
     const paragraph = doc.createElement('p');
     paragraph.textContent = text;
-    section.append(heading, paragraph);
+    section.append(paragraph);
     return section;
   }
 
-  const french = section('fr', 'FRANÇAIS',
+  const french = section('fr',
     'L’Union Nationale des Journalistes de Côte d’Ivoire prie d’accorder au porteur de la présente toute l’aide et toutes les facilités utiles à l’exercice de la profession.',
     'back-copy');
-  const english = section('en', 'ENGLISH',
+  const english = section('en',
     'The National Union of Journalists of Côte d’Ivoire requests that the bearer be extended every assistance and courtesy in the performance of this mission.',
     'back-copy back-copy-english');
   const contact = doc.createElement('footer');
