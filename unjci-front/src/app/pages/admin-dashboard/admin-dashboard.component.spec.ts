@@ -137,7 +137,7 @@ describe('AdminDashboard', () => {
     expect(component.filteredMembers.map(member => member.id)).toEqual([2]);
   });
 
-  it('prints backs only for valid cards matching the current filters', () => {
+  it('offers a single common back independently of member filters', () => {
     const valid = { id: 1, first_name: 'Awa', last_name: 'Koné', member_number: 'TEST-1', qr_token: 'test-qr',
       card_is_valid: true, membership_stage: 'approved', request_type: 'adhesion' };
     component.members = [valid, { ...valid, id: 2, first_name: 'Marc', card_is_valid: false }];
@@ -145,14 +145,16 @@ describe('AdminDashboard', () => {
     render();
     const print = vi.spyOn(component, 'printCards').mockResolvedValue();
     const backButton = Array.from(fixture.nativeElement.querySelectorAll('button'))
-      .find(button => (button as HTMLButtonElement).textContent?.includes('Imprimer les versos')) as HTMLButtonElement;
-    expect(backButton.textContent).toContain('(1)');
+      .find(button => (button as HTMLButtonElement).textContent?.includes('Imprimer le verso')) as HTMLButtonElement;
+    expect(backButton.textContent).not.toContain('(1)');
     backButton.click();
-    expect(print).toHaveBeenCalledWith([valid], 'back');
+    expect(print).toHaveBeenCalledWith([], 'back');
     component.search = 'Marc';
     component.filterMembers();
     render();
-    expect(backButton.disabled).toBe(true);
+    expect(backButton.disabled).toBe(false);
+    backButton.click();
+    expect(print).toHaveBeenLastCalledWith([], 'back');
   });
 
   it('offers a review action for an approved dossier and displays its approval actions afterward', () => {

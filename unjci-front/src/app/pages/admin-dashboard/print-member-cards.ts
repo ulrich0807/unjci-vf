@@ -30,7 +30,7 @@ export async function printMemberCards(
     photoUrls.clear();
   }, { once: true });
   doc.documentElement.lang = 'fr';
-  doc.title = side === 'back' ? 'Versos des cartes UNJCI' : 'Cartes des adhérents UNJCI';
+  doc.title = side === 'back' ? 'Verso de la carte UNJCI' : 'Cartes des adhérents UNJCI';
   const viewport = doc.createElement('meta');
   viewport.name = 'viewport';
   viewport.content = 'width=device-width, initial-scale=1';
@@ -135,13 +135,12 @@ export async function printMemberCards(
   header.append(format);
   if (side === 'back') {
     const note = doc.createElement('p');
-    note.textContent = 'Le verso est commun à tous les adhérents. Conservez le même support et les mêmes réglages que pour le recto.';
+    note.textContent = 'Un seul verso commun à tous les adhérents est préparé. Conservez le même support et les mêmes réglages que pour le recto.';
     header.append(note);
   }
   doc.body.replaceChildren(header, list);
 
   async function createCard(member: PrintableMember): Promise<HTMLElement> {
-    if (side === 'back') return createMemberCardBack(doc, logoUrl);
     const card = doc.createElement('article');
     const heading = doc.createElement('div');
     heading.className = 'card-heading';
@@ -209,7 +208,14 @@ export async function printMemberCards(
   }
 
   try {
-    for (let start = 0; start < members.length && !preview.closed; start += 6) {
+    if (side === 'back' && !preview.closed) {
+      const card = await createMemberCardBack(doc, logoUrl);
+      const row = doc.createElement('div');
+      row.className = 'card-row';
+      row.append(card);
+      list.append(row);
+    }
+    for (let start = 0; side === 'front' && start < members.length && !preview.closed; start += 6) {
       const cards = await Promise.all(members.slice(start, start + 6).map(createCard));
       for (let index = 0; index < cards.length; index += 2) {
         const row = doc.createElement('div');
@@ -220,7 +226,7 @@ export async function printMemberCards(
     }
     if (preview.closed) return;
     message.textContent = side === 'back'
-      ? `${members.length} ${members.length === 1 ? 'verso prêt' : 'versos prêts'} à imprimer.`
+      ? '1 verso prêt à imprimer.'
       : `${members.length} ${members.length === 1 ? 'carte prête' : 'cartes prêtes'} à imprimer.`;
     print.disabled = false;
     print.focus();

@@ -294,7 +294,7 @@ export class AdminDashboard implements OnInit {
 
   async printCards(members: PrintableMember[], side: CardPrintSide = 'front'): Promise<void> {
     const token = this.auth.getSession()?.token;
-    if (!this.hasPermission('manage_members') || !token || !members.length) return;
+    if (!this.hasPermission('manage_members') || !token || (side === 'front' && !members.length)) return;
     this.memberRegisterError = '';
     const preview = window.open('', '_blank');
     if (!preview) {

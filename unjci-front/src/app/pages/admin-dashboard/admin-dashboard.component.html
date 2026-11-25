@@ -308,8 +308,8 @@
         <button type="button" class="login-audit-button secondary" (click)="printCards(printableMembers)" [disabled]="!printableMembers.length">
           Imprimer les cartes ({{ printableMembers.length }})
         </button>
-        <button type="button" class="login-audit-button secondary" (click)="printCards(printableMembers, 'back')" [disabled]="!printableMembers.length">
-          Imprimer les versos ({{ printableMembers.length }})
+        <button type="button" class="login-audit-button secondary" (click)="printCards([], 'back')">
+          Imprimer le verso
         </button>
         <button type="button" class="login-audit-button" (click)="exportMembers()" [disabled]="!filteredMembers.length || exportingMembers">
           {{ exportingMembers ? 'Export en cours…' : 'Exporter en Excel' }}
