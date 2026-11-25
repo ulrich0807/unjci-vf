@@ -67,7 +67,8 @@ class Member extends Model
             && filled($this->member_number)
             && filled($this->qr_token)
             && $this->membership_expires_at !== null
-            && $this->membership_expires_at->endOfDay()->gte(now());
+            && $this->membership_expires_at->endOfDay()->gte(now())
+            && today()->toDateString() <= config('membership.cards_valid_until');
     }
 
     public function user()

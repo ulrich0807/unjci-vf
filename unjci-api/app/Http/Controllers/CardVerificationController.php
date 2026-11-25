@@ -15,6 +15,7 @@ class CardVerificationController extends Controller
             'success' => true,
             'member' => [
                 ...$member->only(['first_name', 'last_name', 'member_number', 'membership_expires_at']),
+                'card_valid_until' => config('membership.cards_valid_until'),
                 'has_photo' => filled($member->photo_file_path),
             ],
         ])->header('Cache-Control', 'private, no-store');

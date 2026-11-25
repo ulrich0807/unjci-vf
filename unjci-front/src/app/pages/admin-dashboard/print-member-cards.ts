@@ -47,7 +47,7 @@ export async function printMemberCards(
       padding: 2.5mm; border-radius: 3mm; background: #fff; font-size: 9px;
       box-shadow: 0 .7em 1.8em #1118281c; break-inside: avoid; overflow-wrap: anywhere; }
     .card-heading { display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 2mm;
-      flex-shrink: 0; font-size: 0.56em; font-weight: 800; line-height: 1.35; text-align: center; white-space: nowrap; }
+      flex-shrink: 0; font-size: 0.76em; font-weight: 800; line-height: 1.35; text-align: center; white-space: nowrap; }
     .card-heading::before, .card-heading::after { content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220;
       align-self: flex-start; margin-top: calc(.675em - .5px); }
     .portrait { position: relative; isolation: isolate; display: grid; place-items: center;
@@ -60,7 +60,7 @@ export async function printMemberCards(
     .portrait img { object-fit: cover; }
     .initials { display: grid; place-items: center; background: #eef1ee; font-weight: 800; font-size: 2em; }
     .info-section { display: flex; flex: 1 0 auto; flex-direction: column; justify-content: space-evenly; }
-    h2 { margin: 0; color: #111; font-size: 1.35em; line-height: 1.1; font-weight: 900; }
+    h2 { margin: 0; color: #111; font-size: 1.35em; line-height: 1.1; font-weight: 900; text-align: center; }
     .function { margin: 0; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
     .function::before { content: ''; display: block; width: 3em; height: 1px; margin: 0 auto .3em; background: #f58220; }
     dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .45em 1em;

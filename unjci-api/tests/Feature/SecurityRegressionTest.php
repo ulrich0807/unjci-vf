@@ -149,15 +149,17 @@ class SecurityRegressionTest extends TestCase
 
     public function test_public_card_verification_checks_expiration_and_approval_and_limits_personal_data(): void
     {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-25 12:00:00'));
         $member = $this->member();
         $member->update(['qr_token' => 'test-qr', 'member_number' => 'UJ26-00001', 'status' => 'approved', 'membership_expires_at' => today()]);
         $this->assertGuest();
         $response = $this->getJson('/verify-card/test-qr')->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('member.member_number', 'UJ26-00001')
+            ->assertJsonPath('member.card_valid_until', '2026-12-31')
             ->assertJsonPath('member.has_photo', true);
         $this->assertEqualsCanonicalizing(
-            ['first_name', 'last_name', 'member_number', 'membership_expires_at', 'has_photo'],
+            ['first_name', 'last_name', 'member_number', 'membership_expires_at', 'card_valid_until', 'has_photo'],
             array_keys($response->json('member')),
         );
         $this->getJson('/verify-card/unknown-token')->assertNotFound();
@@ -171,6 +173,7 @@ class SecurityRegressionTest extends TestCase
 
     public function test_public_card_photo_requires_a_valid_qr_and_keeps_documents_private(): void
     {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-25 12:00:00'));
         Storage::fake('public');
         $member = $this->member();
         $member->update(['qr_token' => 'public-photo-qr', 'member_number' => 'UJ26-00001', 'status' => 'approved', 'membership_expires_at' => today()]);
@@ -194,6 +197,23 @@ class SecurityRegressionTest extends TestCase
         $member->update(['membership_expires_at' => today(), 'photo_file_path' => '']);
         $this->getJson('/verify-card/public-photo-qr')->assertOk()->assertJsonPath('member.has_photo', false);
         $this->getJson('/verify-card/public-photo-qr/photo')->assertNotFound();
+    }
+
+    public function test_all_cards_share_the_session_deadline_and_expire_after_december_31(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-12-31 23:59:59'));
+        $member = $this->member();
+        $member->update(['status' => 'approved', 'member_number' => 'UJ26-00001',
+            'qr_token' => 'session-2026-qr', 'membership_expires_at' => '2027-12-31']);
+        $this->getJson('/verify-card/session-2026-qr')->assertOk()
+            ->assertJsonPath('member.card_valid_until', '2026-12-31');
+        $this->assertTrue($member->fresh()->card_is_valid);
+
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2027-01-01 00:00:00'));
+        $this->getJson('/verify-card/session-2026-qr')->assertUnprocessable();
+        $this->getJson('/verify-card/session-2026-qr/photo')->assertUnprocessable();
+        $this->assertFalse($member->fresh()->card_is_valid);
+        $this->assertSame('2027-12-31', $member->fresh()->membership_expires_at->toDateString());
     }
 
     public function test_public_cache_clearing_is_removed_and_contact_requires_consent(): void

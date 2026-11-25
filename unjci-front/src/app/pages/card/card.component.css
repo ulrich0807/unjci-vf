@@ -10,7 +10,7 @@
 }
 .card-heading {
   display: flex; align-items: center; justify-content: center; gap: .5em; margin-bottom: 2mm;
-  flex-shrink: 0; font-size: 0.56em; font-weight: 800; line-height: 1.35; text-align: center; white-space: nowrap;
+  flex-shrink: 0; font-size: 0.76em; font-weight: 800; line-height: 1.35; text-align: center; white-space: nowrap;
 }
 .card-heading::before, .card-heading::after {
   content: ''; flex: 0 0 1.6em; height: 1px; background: #f58220;
@@ -26,7 +26,7 @@
 .top-right { top: -5%; right: -5%; }
 .bottom-left { bottom: -5%; left: -5%; }
 .info-section { display: flex; flex: 1 0 auto; flex-direction: column; justify-content: space-evenly; }
-.name { margin: 0; font-size: 1.35em; font-weight: 900; line-height: 1.1; }
+.name { margin: 0; font-size: 1.35em; font-weight: 900; line-height: 1.1; text-align: center; }
 .function { margin: 0; color: #19883d; font-size: 1.15em; font-weight: 800; text-align: center; }
 .function::before { content: ''; display: block; width: 3em; height: 1px; margin: 0 auto .3em; background: #f58220; }
 .card-numbers {

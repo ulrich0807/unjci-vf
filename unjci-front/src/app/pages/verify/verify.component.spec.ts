@@ -30,12 +30,14 @@ describe('Public card verification', () => {
     expect(request.request.headers.has('Authorization')).toBe(false);
     request.flush({ success: true, member: {
       first_name: 'Awa', last_name: 'Kouassi', member_number: 'UJ26-00001',
-      membership_expires_at: '2030-12-31', has_photo: true,
+      membership_expires_at: '2030-12-31', card_valid_until: '2026-12-31', has_photo: true,
     } });
     fixture.detectChanges();
     expect(navigate).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('CARTE AUTHENTIQUE');
     expect(fixture.nativeElement.textContent).toContain('UJ26-00001');
+    expect(fixture.nativeElement.textContent).toContain('31/12/2026');
+    expect(fixture.nativeElement.textContent).not.toContain('31/12/2030');
     const photo = fixture.nativeElement.querySelector('img');
     expect(photo.getAttribute('src')).toBe(`${environment.apiUrl}/verify-card/public-qr/photo`);
     photo.dispatchEvent(new Event('error'));
