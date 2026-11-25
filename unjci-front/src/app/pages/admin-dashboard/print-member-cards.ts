@@ -1,4 +1,7 @@
 import { toDataURL } from 'qrcode';
+import { createMemberCardBack, MEMBER_CARD_BACK_STYLES } from './member-card-back';
+
+export type CardPrintSide = 'front' | 'back';
 
 export interface PrintableMember {
   first_name: string;
@@ -17,6 +20,7 @@ export async function printMemberCards(
   verificationBase: string,
   logoUrl: string,
   loadPhoto: (path: string) => Promise<Blob>,
+  side: CardPrintSide = 'front',
 ): Promise<void> {
   const doc = preview.document;
   preview.opener = null;
@@ -26,7 +30,7 @@ export async function printMemberCards(
     photoUrls.clear();
   }, { once: true });
   doc.documentElement.lang = 'fr';
-  doc.title = 'Cartes des adhérents UNJCI';
+  doc.title = side === 'back' ? 'Versos des cartes UNJCI' : 'Cartes des adhérents UNJCI';
   const viewport = doc.createElement('meta');
   viewport.name = 'viewport';
   viewport.content = 'width=device-width, initial-scale=1';
@@ -77,6 +81,7 @@ export async function printMemberCards(
       .card-row { flex-direction: column; align-items: center; }
       article { flex-basis: auto; }
     }
+    ${MEMBER_CARD_BACK_STYLES}
   `;
   const pageStyle = doc.createElement('style');
   doc.head.append(viewport, style, pageStyle);
@@ -128,9 +133,15 @@ export async function printMemberCards(
   formatSelect.addEventListener('change', updateFormat);
   updateFormat();
   header.append(format);
+  if (side === 'back') {
+    const note = doc.createElement('p');
+    note.textContent = 'Le verso est commun à tous les adhérents. Conservez le même support et les mêmes réglages que pour le recto.';
+    header.append(note);
+  }
   doc.body.replaceChildren(header, list);
 
   async function createCard(member: PrintableMember): Promise<HTMLElement> {
+    if (side === 'back') return createMemberCardBack(doc, logoUrl);
     const card = doc.createElement('article');
     const heading = doc.createElement('div');
     heading.className = 'card-heading';
@@ -208,7 +219,9 @@ export async function printMemberCards(
       }
     }
     if (preview.closed) return;
-    message.textContent = `${members.length} ${members.length === 1 ? 'carte prête' : 'cartes prêtes'} à imprimer.`;
+    message.textContent = side === 'back'
+      ? `${members.length} ${members.length === 1 ? 'verso prêt' : 'versos prêts'} à imprimer.`
+      : `${members.length} ${members.length === 1 ? 'carte prête' : 'cartes prêtes'} à imprimer.`;
     print.disabled = false;
     print.focus();
   } catch (error) {

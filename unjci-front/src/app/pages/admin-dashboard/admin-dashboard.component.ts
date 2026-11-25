@@ -8,7 +8,7 @@ import { environment } from '../../../environments/environment';
 import { firstValueFrom, Observable, timeout } from 'rxjs';
 import { ProtectedFileDirective } from '../../core/protected-file.directive';
 import { MembershipAvailability, MembershipClosure } from '../../core/membership-closure';
-import type { PrintableMember } from './print-member-cards';
+import type { CardPrintSide, PrintableMember } from './print-member-cards';
 import {
   ManagedPressMedia,
   PressCompanyRecord,
@@ -292,7 +292,7 @@ export class AdminDashboard implements OnInit {
     return this.filteredMembers.filter(member => member.card_is_valid && member.qr_token && member.member_number);
   }
 
-  async printCards(members: PrintableMember[]): Promise<void> {
+  async printCards(members: PrintableMember[], side: CardPrintSide = 'front'): Promise<void> {
     const token = this.auth.getSession()?.token;
     if (!this.hasPermission('manage_members') || !token || !members.length) return;
     this.memberRegisterError = '';
@@ -316,7 +316,7 @@ export class AdminDashboard implements OnInit {
         return firstValueFrom(this.http.get(url, {
           headers: { Authorization: `Bearer ${token}` }, responseType: 'blob',
         }).pipe(timeout(10000)));
-      });
+      }, side);
     } catch {
       if (!preview.closed) preview.close();
       this.memberRegisterError = 'Impossible de préparer les cartes à imprimer.';
