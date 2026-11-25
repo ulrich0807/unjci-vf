@@ -12,9 +12,8 @@ export const MEMBER_CARD_BACK_STYLES = `
   .back-logo { display: block; width: 20mm; height: auto; margin: 0 auto 1.5mm; }
   .back-brand p { margin: 0; font-size: 0.76em; font-weight: 800; line-height: 1.4; letter-spacing: .035em; }
   .back-edition { display: inline-block; margin-top: 1.5mm; padding: .6mm 2mm; border: .2mm solid #168343; border-radius: 2mm; color: #126438; font-size: .9em; font-weight: 800; letter-spacing: .1em; }
-  .back-copy p { margin: 0; font-size: 1em; font-weight: 600; line-height: 1.45; }
+  .back-copy p { margin: 0; font-family: inherit; font-size: 1em; font-weight: 400; line-height: 1.45; }
   .back-copy-english { padding-top: 2.3mm; border-top: .2mm solid #cbded1; }
-  .back-copy-english p { font-size: .95em; font-weight: 400; color: #375749; }
   .card-back .back-contact { display: block; border-top: .2mm solid #cbded1; padding-top: 2mm; text-align: center; }
   .back-contact strong { display: block; color: #126438; font-size: 1.05em; }
 `;
